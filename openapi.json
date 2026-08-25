@@ -1,0 +1,255 @@
+{
+	"openapi": "3.0.3",
+	"info": {
+		"title": "Car Fuel & Maintenance",
+		"version": "1.0.0",
+		"description": "Token-friendly OCS API for the Car Fuel & Maintenance Nextcloud app. Every operation the web UI can do is also available here, meant for external/automated clients (scripts, AI agents pairing with a user, etc.) authenticated with a Nextcloud app password (Settings > Security > Create new app password) via HTTP Basic Auth. Every request must also carry the `OCS-APIRequest: true` header, per the standard Nextcloud OCS API convention."
+	},
+	"servers": [
+		{
+			"url": "https://{host}/ocs/v2.php/apps/carfuelmaintance",
+			"description": "Base path on any Nextcloud instance running this app. Replace {host} with the instance's domain.",
+			"variables": {
+				"host": { "default": "your-nextcloud.example.com" }
+			}
+		}
+	],
+	"security": [{ "basicAuth": [] }],
+	"components": {
+		"securitySchemes": {
+			"basicAuth": {
+				"type": "http",
+				"scheme": "basic",
+				"description": "Nextcloud username + app password (NOT the account password). Generate one in Settings > Security > Devices & sessions > Create new app password."
+			}
+		},
+		"parameters": {
+			"OcsApiRequest": {
+				"name": "OCS-APIRequest",
+				"in": "header",
+				"required": true,
+				"schema": { "type": "string", "enum": ["true"] },
+				"description": "Required by all Nextcloud OCS endpoints."
+			}
+		},
+		"schemas": {
+			"Car": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "integer" },
+					"userId": { "type": "string" },
+					"name": { "type": "string" },
+					"brand": { "type": "string", "nullable": true },
+					"model": { "type": "string", "nullable": true },
+					"plate": { "type": "string", "nullable": true },
+					"year": { "type": "integer", "nullable": true },
+					"fuelType": { "type": "string", "enum": ["gasoline", "diesel", "lpg", "electric", "hybrid", "other"], "default": "gasoline" },
+					"initialOdometer": { "type": "number", "format": "float", "default": 0, "description": "Odometer reading when tracking started; distance and stats are computed from this baseline" },
+					"odometerUnit": { "type": "string", "enum": ["km", "mi"], "default": "km" },
+					"notes": { "type": "string", "nullable": true },
+					"createdAt": { "type": "string", "format": "date-time", "nullable": true },
+					"archived": { "type": "boolean", "default": false, "description": "Archived cars are hidden from the default list but keep all their data" }
+				}
+			},
+			"FuelEntry": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "integer" },
+					"carId": { "type": "integer" },
+					"entryDate": { "type": "string", "format": "date" },
+					"odometer": { "type": "number", "format": "float" },
+					"quantity": { "type": "number", "format": "float" },
+					"unit": { "type": "string", "enum": ["L", "gal", "kWh"], "default": "L" },
+					"pricePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Auto-computed from totalCost/quantity if omitted" },
+					"totalCost": { "type": "number", "format": "float", "nullable": true, "description": "Auto-computed from pricePerUnit*quantity if omitted" },
+					"fullTank": { "type": "boolean", "default": true, "description": "Consumption is only computed between two consecutive full-tank fill-ups; partial fills in between are folded into the next full one" },
+					"station": { "type": "string", "nullable": true },
+					"notes": { "type": "string", "nullable": true },
+					"sortOrder": { "type": "integer" }
+				}
+			},
+			"MaintenanceEntry": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "integer" },
+					"carId": { "type": "integer" },
+					"entryDate": { "type": "string", "format": "date" },
+					"odometer": { "type": "number", "format": "float", "nullable": true },
+					"type": { "type": "string", "enum": ["oil_change", "tires", "brakes", "battery", "filters", "inspection", "repair", "other"], "default": "other" },
+					"description": { "type": "string", "nullable": true },
+					"cost": { "type": "number", "format": "float", "nullable": true },
+					"workshop": { "type": "string", "nullable": true },
+					"nextDueDate": { "type": "string", "format": "date", "nullable": true },
+					"nextDueOdometer": { "type": "number", "format": "float", "nullable": true },
+					"notes": { "type": "string", "nullable": true },
+					"sortOrder": { "type": "integer" }
+				}
+			},
+			"Reminder": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "integer", "description": "The maintenance entry's id" },
+					"type": { "type": "string" },
+					"description": { "type": "string", "nullable": true },
+					"nextDueDate": { "type": "string", "format": "date", "nullable": true },
+					"nextDueOdometer": { "type": "number", "format": "float", "nullable": true },
+					"daysRemaining": { "type": "integer", "nullable": true, "description": "Negative when overdue" },
+					"distanceRemaining": { "type": "number", "format": "float", "nullable": true, "description": "Negative when overdue" },
+					"status": { "type": "string", "enum": ["overdue", "due_soon", "upcoming"] }
+				}
+			},
+			"CarStats": {
+				"type": "object",
+				"properties": {
+					"currentOdometer": { "type": "number", "format": "float" },
+					"odometerUnit": { "type": "string" },
+					"totalDistance": { "type": "number", "format": "float" },
+					"fuelEntriesCount": { "type": "integer" },
+					"maintenanceEntriesCount": { "type": "integer" },
+					"totalFuelCost": { "type": "number", "format": "float" },
+					"totalMaintenanceCost": { "type": "number", "format": "float" },
+					"totalCost": { "type": "number", "format": "float" },
+					"costPerDistance": { "type": "number", "format": "float", "nullable": true },
+					"fuelUnit": { "type": "string" },
+					"avgConsumptionPer100": { "type": "number", "format": "float", "nullable": true, "description": "Fuel/energy unit per 100 distance units, fill-to-fill between full tanks" },
+					"avgDistancePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Distance units per fuel/energy unit, fill-to-fill between full tanks" },
+					"reminders": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } }
+				}
+			},
+			"CarDetail": {
+				"type": "object",
+				"description": "A car plus its full fuel/maintenance history and computed stats. Returned by GET /api/v1/cars/{id}.",
+				"properties": {
+					"car": { "$ref": "#/components/schemas/Car" },
+					"fuelEntries": { "type": "array", "items": { "$ref": "#/components/schemas/FuelEntry" } },
+					"maintenanceEntries": { "type": "array", "items": { "$ref": "#/components/schemas/MaintenanceEntry" } },
+					"stats": { "$ref": "#/components/schemas/CarStats" }
+				}
+			}
+		}
+	},
+	"paths": {
+		"/api/v1/help": {
+			"get": {
+				"operationId": "help",
+				"summary": "Human/AI-readable quick reference: what this API does, how to authenticate, and a condensed list of every endpoint. No authentication required — start here.",
+				"security": [],
+				"responses": { "200": { "description": "OK" } }
+			}
+		},
+		"/api/v1/cars": {
+			"get": {
+				"operationId": "listCars",
+				"summary": "List all cars owned by the authenticated user",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "includeArchived", "in": "query", "required": false, "schema": { "type": "boolean", "default": false }, "description": "When true, archived cars are included in the results alongside active ones" }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Car" } } } } } }
+			},
+			"post": {
+				"operationId": "createCar",
+				"summary": "Register a new car",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
+				"requestBody": {
+					"required": true,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "model": { "type": "string" }, "plate": { "type": "string" }, "year": { "type": "integer" }, "fuelType": { "type": "string", "default": "gasoline" }, "initialOdometer": { "type": "number", "default": 0 }, "odometerUnit": { "type": "string", "default": "km" }, "notes": { "type": "string" } } } } }
+				},
+				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Car" } } } } }
+			}
+		},
+		"/api/v1/cars/{id}": {
+			"get": {
+				"operationId": "getCar",
+				"summary": "Get a car plus its full fuel/maintenance history and computed stats (consumption, spend, reminders)",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CarDetail" } } } }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"put": {
+				"operationId": "updateCar",
+				"summary": "Update a car. Only fields present in the request body are changed; pass the matching \"...Provided=true\" flag to set a nullable field to null.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": false,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "brandProvided": { "type": "boolean" }, "model": { "type": "string" }, "modelProvided": { "type": "boolean" }, "plate": { "type": "string" }, "plateProvided": { "type": "boolean" }, "year": { "type": "integer" }, "yearProvided": { "type": "boolean" }, "fuelType": { "type": "string" }, "initialOdometer": { "type": "number" }, "odometerUnit": { "type": "string" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" }, "archived": { "type": "boolean", "description": "true to archive, false to restore" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Car" } } } }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"delete": {
+				"operationId": "deleteCar",
+				"summary": "Delete a car and all its fuel/maintenance entries",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/cars/{carId}/fuel": {
+			"get": {
+				"operationId": "listFuel",
+				"summary": "List fuel entries for a car, ordered by date",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/FuelEntry" } } } } }, "404": { "description": "Car not found or not owned by the authenticated user" } }
+			},
+			"post": {
+				"operationId": "createFuel",
+				"summary": "Log a fuel fill-up. Set fullTank=true (the default) when the tank is filled completely — that's what makes consumption calculations accurate.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": true,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["entryDate", "odometer", "quantity"], "properties": { "entryDate": { "type": "string", "format": "date" }, "odometer": { "type": "number" }, "quantity": { "type": "number" }, "unit": { "type": "string", "default": "L" }, "pricePerUnit": { "type": "number" }, "totalCost": { "type": "number" }, "fullTank": { "type": "boolean", "default": true }, "station": { "type": "string" }, "notes": { "type": "string" } } } } }
+				},
+				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FuelEntry" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Car not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/fuel/{id}": {
+			"put": {
+				"operationId": "updateFuel",
+				"summary": "Update a fuel entry. Only fields present in the request body are changed; pass the matching \"...Provided=true\" flag to set a nullable field to null.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": false,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "entryDate": { "type": "string", "format": "date" }, "odometer": { "type": "number" }, "quantity": { "type": "number" }, "unit": { "type": "string" }, "pricePerUnit": { "type": "number" }, "pricePerUnitProvided": { "type": "boolean" }, "totalCost": { "type": "number" }, "totalCostProvided": { "type": "boolean" }, "fullTank": { "type": "boolean" }, "station": { "type": "string" }, "stationProvided": { "type": "boolean" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FuelEntry" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"delete": {
+				"operationId": "deleteFuel",
+				"summary": "Delete a fuel entry",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/cars/{carId}/maintenance": {
+			"get": {
+				"operationId": "listMaintenance",
+				"summary": "List maintenance entries for a car, ordered by date",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/MaintenanceEntry" } } } } }, "404": { "description": "Car not found or not owned by the authenticated user" } }
+			},
+			"post": {
+				"operationId": "createMaintenance",
+				"summary": "Log maintenance work. Set nextDueDate and/or nextDueOdometer to get a reminder on the car's overview once it's due or approaching.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": true,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["entryDate", "type"], "properties": { "entryDate": { "type": "string", "format": "date" }, "type": { "type": "string" }, "odometer": { "type": "number" }, "description": { "type": "string" }, "cost": { "type": "number" }, "workshop": { "type": "string" }, "nextDueDate": { "type": "string", "format": "date" }, "nextDueOdometer": { "type": "number" }, "notes": { "type": "string" } } } } }
+				},
+				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MaintenanceEntry" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Car not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/maintenance/{id}": {
+			"put": {
+				"operationId": "updateMaintenance",
+				"summary": "Update a maintenance entry. Only fields present in the request body are changed; pass the matching \"...Provided=true\" flag to set a nullable field to null.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": false,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "entryDate": { "type": "string", "format": "date" }, "type": { "type": "string" }, "odometer": { "type": "number" }, "odometerProvided": { "type": "boolean" }, "description": { "type": "string" }, "descriptionProvided": { "type": "boolean" }, "cost": { "type": "number" }, "costProvided": { "type": "boolean" }, "workshop": { "type": "string" }, "workshopProvided": { "type": "boolean" }, "nextDueDate": { "type": "string", "format": "date" }, "nextDueDateProvided": { "type": "boolean" }, "nextDueOdometer": { "type": "number" }, "nextDueOdometerProvided": { "type": "boolean" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MaintenanceEntry" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"delete": {
+				"operationId": "deleteMaintenance",
+				"summary": "Delete a maintenance entry",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		}
+	}
+}
