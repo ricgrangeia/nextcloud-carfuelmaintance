@@ -33,12 +33,13 @@ class SettingsController extends Controller {
 		return new DataResponse([
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
+			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
 		]);
 	}
 
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'PUT', url: '/api/settings')]
-	public function update(?int $reminderMonths = null, ?string $currencySymbol = null): DataResponse {
+	public function update(?int $reminderMonths = null, ?string $currencySymbol = null, ?string $consumptionFormat = null): DataResponse {
 		$userId = $this->getUserId();
 		if ($reminderMonths !== null) {
 			$this->settingsService->setReminderMonths($userId, $reminderMonths);
@@ -46,9 +47,13 @@ class SettingsController extends Controller {
 		if ($currencySymbol !== null) {
 			$this->settingsService->setCurrencySymbol($userId, $currencySymbol);
 		}
+		if ($consumptionFormat !== null) {
+			$this->settingsService->setConsumptionFormat($userId, $consumptionFormat);
+		}
 		return new DataResponse([
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
+			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
 		]);
 	}
 }

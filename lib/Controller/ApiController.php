@@ -86,8 +86,8 @@ class ApiController extends OCSController {
 				['method' => 'POST', 'path' => '/api/v1/cars/{carId}/maintenance', 'summary' => 'Log maintenance work (entryDate, type, odometer, description, cost, workshop, nextDueDate, nextDueOdometer)'],
 				['method' => 'PUT', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Update a maintenance entry'],
 				['method' => 'DELETE', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Delete a maintenance entry'],
-				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon"; currencySymbol: shown after every money value app-wide)'],
-				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths, currencySymbol) — only fields present in the request are changed'],
+				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon"; currencySymbol: shown after every money value app-wide; consumptionFormat: "per100" e.g. L/100km or "perUnit" e.g. km/L, MPG)'],
+				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths, currencySymbol, consumptionFormat) — only fields present in the request are changed'],
 			],
 		]);
 	}
@@ -402,12 +402,13 @@ class ApiController extends OCSController {
 		return new DataResponse([
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
+			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
 		]);
 	}
 
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'PUT', url: '/api/v1/settings')]
-	public function updateSettings(?int $reminderMonths = null, ?string $currencySymbol = null): DataResponse {
+	public function updateSettings(?int $reminderMonths = null, ?string $currencySymbol = null, ?string $consumptionFormat = null): DataResponse {
 		$userId = $this->getUserId();
 		if ($reminderMonths !== null) {
 			$this->settingsService->setReminderMonths($userId, $reminderMonths);
@@ -415,9 +416,13 @@ class ApiController extends OCSController {
 		if ($currencySymbol !== null) {
 			$this->settingsService->setCurrencySymbol($userId, $currencySymbol);
 		}
+		if ($consumptionFormat !== null) {
+			$this->settingsService->setConsumptionFormat($userId, $consumptionFormat);
+		}
 		return new DataResponse([
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
+			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
 		]);
 	}
 }

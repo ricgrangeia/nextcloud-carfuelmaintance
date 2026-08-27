@@ -20,8 +20,40 @@ function distancePoints(history) {
 	return history.map((h) => ({ date: h.date, value: h.distance }))
 }
 
+function isPerUnit() {
+	return detail.value.stats.consumptionFormat === 'perUnit'
+}
+
 function consumptionPoints(history) {
-	return history.map((h) => ({ date: h.date, value: h.consumptionPer100 }))
+	return history.map((h) => ({ date: h.date, value: isPerUnit() ? h.distancePerUnit : h.consumptionPer100 }))
+}
+
+function consumptionUnitLabel(group) {
+	const odometerUnit = detail.value.stats.odometerUnit
+	return isPerUnit() ? `${odometerUnit}/${group.unit}` : `${group.unit}/100${odometerUnit}`
+}
+
+function consumptionValueLabel(group) {
+	const value = isPerUnit() ? group.avgDistancePerUnit : group.avgConsumptionPer100
+	return value === null ? null : `${value} ${consumptionUnitLabel(group)}`
+}
+
+function historyConsumptionLabel(group, h) {
+	const value = isPerUnit() ? h.distancePerUnit : h.consumptionPer100
+	return `${value} ${consumptionUnitLabel(group)}`
+}
+
+function costAtLastPriceLabel(group) {
+	const symbol = detail.value.stats.currencySymbol
+	const odometerUnit = detail.value.stats.odometerUnit
+	if (isPerUnit()) {
+		return group.costPerDistanceAtLastPrice === null
+			? null
+			: `${formatMoney(group.costPerDistanceAtLastPrice, symbol)}/${odometerUnit}`
+	}
+	return group.costPer100AtLastPrice === null
+		? null
+		: `${formatMoney(group.costPer100AtLastPrice, symbol)}/100${odometerUnit}`
 }
 
 const REMINDER_LABELS = {
@@ -64,15 +96,16 @@ function formatDays(remaining) {
 				<span class="stat-label">{{ t('carfuelmaintance', 'Total distance') }}</span>
 				<span class="stat-value">{{ detail.stats.totalDistance }} {{ detail.stats.odometerUnit }}</span>
 			</div>
-			<div v-for="group in detail.stats.consumptionByFuelType" :key="group.fuelType" class="stat-card">
-				<span class="stat-label">{{ t('carfuelmaintance', 'Avg. consumption') }} ({{ fuelLabel(group.fuelType) }})</span>
-				<span class="stat-value">
-					<template v-if="group.avgConsumptionPer100 !== null">
-						{{ group.avgConsumptionPer100 }} {{ group.unit }}/100{{ detail.stats.odometerUnit }}
-					</template>
-					<template v-else>—</template>
-				</span>
-			</div>
+			<template v-for="group in detail.stats.consumptionByFuelType" :key="group.fuelType">
+				<div class="stat-card">
+					<span class="stat-label">{{ t('carfuelmaintance', 'Avg. consumption') }} ({{ fuelLabel(group.fuelType) }})</span>
+					<span class="stat-value">{{ consumptionValueLabel(group) ?? '—' }}</span>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">{{ t('carfuelmaintance', 'Cost at current price') }} ({{ fuelLabel(group.fuelType) }})</span>
+					<span class="stat-value">{{ costAtLastPriceLabel(group) ?? '—' }}</span>
+				</div>
+			</template>
 			<div class="stat-card">
 				<span class="stat-label">{{ t('carfuelmaintance', 'Fuel spend') }}</span>
 				<span class="stat-value">{{ formatMoney(detail.stats.totalFuelCost, detail.stats.currencySymbol) }}</span>
@@ -134,8 +167,8 @@ function formatDays(remaining) {
 							<MiniChart type="bar" :points="distancePoints(group.history)" :unit="detail.stats.odometerUnit" />
 						</div>
 						<div class="chart-card">
-							<span class="chart-title">{{ t('carfuelmaintance', 'Consumption over time') }} ({{ group.unit }}/100{{ detail.stats.odometerUnit }})</span>
-							<MiniChart type="line" :points="consumptionPoints(group.history)" :unit="`${group.unit}/100${detail.stats.odometerUnit}`" />
+							<span class="chart-title">{{ t('carfuelmaintance', 'Consumption over time') }} ({{ consumptionUnitLabel(group) }})</span>
+							<MiniChart type="line" :points="consumptionPoints(group.history)" :unit="consumptionUnitLabel(group)" />
 						</div>
 					</div>
 
@@ -153,7 +186,7 @@ function formatDays(remaining) {
 								<td>{{ h.date }}</td>
 								<td>{{ h.distance }} {{ detail.stats.odometerUnit }}</td>
 								<td>{{ h.fuelUsed }} {{ h.unit }}</td>
-								<td>{{ h.consumptionPer100 }} {{ h.unit }}/100{{ detail.stats.odometerUnit }}</td>
+								<td>{{ historyConsumptionLabel(group, h) }}</td>
 							</tr>
 						</tbody>
 					</table>

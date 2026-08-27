@@ -124,6 +124,11 @@ OC.L10N.register(
     "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Aún no hay datos suficientes. Registra al menos dos repostajes con el depósito lleno de este combustible para ver gráficos aquí.",
     "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Combustible secundario (coches bicombustible, p. ej. gasolina + GLP)",
     "Currency symbol": "Símbolo de moneda",
-    "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Se muestra después de cada valor monetario en toda la aplicación, p. ej. \"60.00 {symbol}\"."
+    "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Se muestra después de cada valor monetario en toda la aplicación, p. ej. \"60.00 {symbol}\".",
+    "Consumption format": "Formato de consumo",
+    "Controls how consumption is shown throughout the app — the Overview stat cards, charts and the \"cost at current price\" figure.": "Controla cómo se muestra el consumo en toda la aplicación: las tarjetas de estadísticas del Resumen, los gráficos y la cifra de \"coste al precio actual\".",
+    "Cost at current price": "Coste al precio actual",
+    "Distance per fuel unit (e.g. km/L, MPG)": "Distancia por unidad de combustible (p. ej. km/L, MPG)",
+    "Fuel per 100 distance (e.g. L/100km, gal/100mi)": "Combustible por 100 de distancia (p. ej. L/100km, gal/100mi)"
     },
     "nplurals=2; plural=(n != 1);");

@@ -123,7 +123,12 @@
         "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Pas encore assez de données. Enregistrez au moins deux pleins complets de ce carburant pour voir des graphiques ici.",
         "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Carburant secondaire (voitures bicarburant, ex. essence + GPL)",
         "Currency symbol": "Symbole monétaire",
-        "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Affiché après chaque valeur monétaire dans toute l'application, ex. \"60.00 {symbol}\"."
+        "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Affiché après chaque valeur monétaire dans toute l'application, ex. \"60.00 {symbol}\".",
+        "Consumption format": "Format de consommation",
+        "Controls how consumption is shown throughout the app — the Overview stat cards, charts and the \"cost at current price\" figure.": "Contrôle la façon dont la consommation est affichée dans toute l'application — les cartes de statistiques de l'Aperçu, les graphiques et le \"coût au prix actuel\".",
+        "Cost at current price": "Coût au prix actuel",
+        "Distance per fuel unit (e.g. km/L, MPG)": "Distance par unité de carburant (ex. km/L, MPG)",
+        "Fuel per 100 distance (e.g. L/100km, gal/100mi)": "Carburant pour 100 de distance (ex. L/100km, gal/100mi)"
     },
     "pluralForm": "nplurals=2; plural=(n > 1);"
 }

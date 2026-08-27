@@ -25,7 +25,7 @@ class StatsServiceTest extends TestCase {
 		return $car;
 	}
 
-	private function fuel(float $odometer, float $quantity, bool $fullTank, ?float $totalCost = null, string $unit = 'L', string $fuelType = 'gasoline'): FuelEntry {
+	private function fuel(float $odometer, float $quantity, bool $fullTank, ?float $totalCost = null, string $unit = 'L', string $fuelType = 'gasoline', ?float $pricePerUnit = null): FuelEntry {
 		$entry = new FuelEntry();
 		$entry->setEntryDate(new \DateTimeImmutable('2026-01-01'));
 		$entry->setOdometer($odometer);
@@ -34,6 +34,7 @@ class StatsServiceTest extends TestCase {
 		$entry->setFullTank($fullTank);
 		$entry->setTotalCost($totalCost);
 		$entry->setFuelType($fuelType);
+		$entry->setPricePerUnit($pricePerUnit);
 		return $entry;
 	}
 
@@ -112,6 +113,51 @@ class StatsServiceTest extends TestCase {
 		self::assertSame(120.0, $result['totalFuelCost']);
 		self::assertSame(500.0, $result['totalDistance']);
 		self::assertEqualsWithDelta(0.24, $result['costPerDistance'], 0.001);
+	}
+
+	public function testCostAtLastPriceUsesMostRecentPriceNotHistoricalAverage(): void {
+		// Prices rise over time: 1.50 -> 1.60 -> 1.80/L. "At last price" must
+		// use 1.80 (the most recent), not an average of the three.
+		$entries = [
+			$this->fuel(1000, 40.0, true, null, 'L', 'gasoline', 1.50),
+			$this->fuel(1500, 40.0, true, null, 'L', 'gasoline', 1.60),
+			$this->fuel(2000, 40.0, true, null, 'L', 'gasoline', 1.80),
+		];
+
+		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+		$gasoline = $this->fuelTypeStats($result, 'gasoline');
+
+		// 8 L/100km at 1.80 €/L -> 14.40 €/100km.
+		self::assertSame(1.80, $gasoline['lastPricePerUnit']);
+		self::assertSame(14.40, $gasoline['costPer100AtLastPrice']);
+		// 12.5 km/L -> 1.80 / 12.5 = 0.144 €/km.
+		self::assertEqualsWithDelta(0.144, $gasoline['costPerDistanceAtLastPrice'], 0.001);
+	}
+
+	public function testCostAtLastPriceSkipsEntriesWithoutAPrice(): void {
+		$entries = [
+			$this->fuel(1000, 40.0, true, null, 'L', 'gasoline', 1.50),
+			$this->fuel(1500, 40.0, true, null, 'L', 'gasoline', null),
+		];
+
+		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+		$gasoline = $this->fuelTypeStats($result, 'gasoline');
+
+		self::assertSame(1.50, $gasoline['lastPricePerUnit']);
+	}
+
+	public function testNoCostAtLastPriceWithoutAnyPrice(): void {
+		$entries = [
+			$this->fuel(1000, 40.0, true),
+			$this->fuel(1500, 40.0, true),
+		];
+
+		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+		$gasoline = $this->fuelTypeStats($result, 'gasoline');
+
+		self::assertNull($gasoline['lastPricePerUnit']);
+		self::assertNull($gasoline['costPer100AtLastPrice']);
+		self::assertNull($gasoline['costPerDistanceAtLastPrice']);
 	}
 
 	public function testTotalDistanceIgnoresUnsetInitialOdometer(): void {

@@ -5,6 +5,7 @@ import api from '../api/client.js'
 
 const reminderMonths = ref(1)
 const currencySymbol = ref('€')
+const consumptionFormat = ref('per100')
 const loaded = ref(false)
 const saving = ref(false)
 const saved = ref(false)
@@ -17,6 +18,7 @@ onMounted(async () => {
 	const settings = await api.getSettings()
 	reminderMonths.value = settings.reminderMonths
 	currencySymbol.value = settings.currencySymbol
+	consumptionFormat.value = settings.consumptionFormat
 	loaded.value = true
 })
 
@@ -27,9 +29,11 @@ async function save() {
 		const settings = await api.updateSettings({
 			reminderMonths: Number(reminderMonths.value),
 			currencySymbol: currencySymbol.value,
+			consumptionFormat: consumptionFormat.value,
 		})
 		reminderMonths.value = settings.reminderMonths
 		currencySymbol.value = settings.currencySymbol
+		consumptionFormat.value = settings.consumptionFormat
 		saved.value = true
 	} catch (e) {
 		window.alert(t('carfuelmaintance', 'Could not save settings: {message}', { message: errorMessage(e) }))
@@ -56,6 +60,16 @@ async function save() {
 			</label>
 			<p class="hint">
 				{{ t('carfuelmaintance', 'Shown after every money value across the app, e.g. "60.00 {symbol}".', { symbol: currencySymbol }) }}
+			</p>
+			<label class="dialog-field">
+				<span class="dialog-label">{{ t('carfuelmaintance', 'Consumption format') }}</span>
+				<select v-model="consumptionFormat">
+					<option value="per100">{{ t('carfuelmaintance', 'Fuel per 100 distance (e.g. L/100km, gal/100mi)') }}</option>
+					<option value="perUnit">{{ t('carfuelmaintance', 'Distance per fuel unit (e.g. km/L, MPG)') }}</option>
+				</select>
+			</label>
+			<p class="hint">
+				{{ t('carfuelmaintance', 'Controls how consumption is shown throughout the app — the Overview stat cards, charts and the "cost at current price" figure.') }}
 			</p>
 			<div class="actions-row">
 				<button type="submit" class="save-btn" :disabled="saving">
@@ -92,7 +106,8 @@ async function save() {
 	color: var(--color-text-maxcontrast);
 }
 
-.dialog-field input {
+.dialog-field input,
+.dialog-field select {
 	width: 100%;
 	box-sizing: border-box;
 	padding: 8px 10px;
@@ -103,7 +118,8 @@ async function save() {
 	font: inherit;
 }
 
-.dialog-field input:focus {
+.dialog-field input:focus,
+.dialog-field select:focus {
 	border-color: var(--color-primary-element);
 	outline: none;
 }

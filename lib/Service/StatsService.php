@@ -22,8 +22,9 @@ class StatsService {
 	 * @param MaintenanceEntry[] $maintenanceEntries
 	 * @param int $reminderMonths how many months ahead of a due date counts as "due soon"
 	 * @param string $currencySymbol the user's configured currency symbol, echoed back for display
+	 * @param string $consumptionFormat 'per100' (e.g. L/100km) or 'perUnit' (e.g. km/L, MPG), echoed back for display
 	 */
-	public function computeCarStats(Car $car, array $fuelEntries, array $maintenanceEntries, \DateTimeImmutable $today, int $reminderMonths = 1, string $currencySymbol = '€'): array {
+	public function computeCarStats(Car $car, array $fuelEntries, array $maintenanceEntries, \DateTimeImmutable $today, int $reminderMonths = 1, string $currencySymbol = '€', string $consumptionFormat = 'per100'): array {
 		$byOdometer = $fuelEntries;
 		usort($byOdometer, static fn (FuelEntry $a, FuelEntry $b) => $a->getOdometer() <=> $b->getOdometer());
 
@@ -69,13 +70,14 @@ class StatsService {
 			'consumptionByFuelType' => $this->consumptionByFuelType($byOdometer),
 			'reminderMonths' => $reminderMonths,
 			'currencySymbol' => $currencySymbol,
+			'consumptionFormat' => $consumptionFormat,
 			'reminders' => $this->buildReminders($maintenanceEntries, $currentOdometer, $today, $reminderMonths),
 		];
 	}
 
 	/**
 	 * @param FuelEntry[] $sortedByOdometer all fuel entries, sorted by odometer ascending
-	 * @return array<int, array{fuelType: string, unit: string, entryCount: int, avgConsumptionPer100: ?float, avgDistancePerUnit: ?float, history: array}>
+	 * @return array<int, array{fuelType: string, unit: string, entryCount: int, avgConsumptionPer100: ?float, avgDistancePerUnit: ?float, history: array, lastPricePerUnit: ?float, costPer100AtLastPrice: ?float, costPerDistanceAtLastPrice: ?float}>
 	 */
 	private function consumptionByFuelType(array $sortedByOdometer): array {
 		$byType = [];
@@ -86,14 +88,36 @@ class StatsService {
 		$result = [];
 		foreach ($byType as $fuelType => $entries) {
 			[$fuelUsed, $distance, $unit, $history] = $this->consumptionBetweenFullTanks($entries);
+			$avgConsumptionPer100 = ($distance > 0 && $fuelUsed > 0) ? round($fuelUsed / $distance * 100, 2) : null;
+			$avgDistancePerUnit = $fuelUsed > 0 ? round($distance / $fuelUsed, 2) : null;
+
+			// Most recent known price for this fuel type, walking backwards
+			// since not every entry has a price set.
+			$lastPricePerUnit = null;
+			for ($i = count($entries) - 1; $i >= 0; $i--) {
+				$price = $entries[$i]->getPricePerUnit();
+				if ($price !== null) {
+					$lastPricePerUnit = $price;
+					break;
+				}
+			}
 
 			$result[] = [
 				'fuelType' => $fuelType,
 				'unit' => $unit,
 				'entryCount' => count($entries),
-				'avgConsumptionPer100' => ($distance > 0 && $fuelUsed > 0) ? round($fuelUsed / $distance * 100, 2) : null,
-				'avgDistancePerUnit' => $fuelUsed > 0 ? round($distance / $fuelUsed, 2) : null,
+				'avgConsumptionPer100' => $avgConsumptionPer100,
+				'avgDistancePerUnit' => $avgDistancePerUnit,
 				'history' => $history,
+				'lastPricePerUnit' => $lastPricePerUnit,
+				// What driving costs today, combining the latest known fuel
+				// price with the computed consumption rate — distinct from
+				// costPerDistance, which is a historical average over every
+				// entry ever logged.
+				'costPer100AtLastPrice' => ($avgConsumptionPer100 !== null && $lastPricePerUnit !== null)
+					? round($avgConsumptionPer100 * $lastPricePerUnit, 2) : null,
+				'costPerDistanceAtLastPrice' => ($avgDistancePerUnit !== null && $avgDistancePerUnit > 0 && $lastPricePerUnit !== null)
+					? round($lastPricePerUnit / $avgDistancePerUnit, 3) : null,
 			];
 		}
 

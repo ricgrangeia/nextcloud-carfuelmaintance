@@ -123,6 +123,9 @@
 								"entryCount": { "type": "integer" },
 								"avgConsumptionPer100": { "type": "number", "format": "float", "nullable": true, "description": "Fuel/energy unit per 100 distance units, fill-to-fill between full tanks of this fuel type. Null if fewer than two full-tank fill-ups of this type were logged." },
 								"avgDistancePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Distance units per fuel/energy unit, fill-to-fill between full tanks of this fuel type" },
+							"lastPricePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Most recent known price per unit for this fuel type (walks backward through entries until one with a price is found)" },
+							"costPer100AtLastPrice": { "type": "number", "format": "float", "nullable": true, "description": "avgConsumptionPer100 x lastPricePerUnit — what driving 100 distance units costs today, unlike costPerDistance which is a historical average over every entry ever logged" },
+							"costPerDistanceAtLastPrice": { "type": "number", "format": "float", "nullable": true, "description": "lastPricePerUnit / avgDistancePerUnit — cost per single distance unit at today's price" },
 								"history": {
 									"type": "array",
 									"description": "One entry per full-tank-to-full-tank interval of this fuel type, ordered oldest to newest, for charting distance/consumption over time",
@@ -142,6 +145,7 @@
 						}
 					},
 					"reminderMonths": { "type": "integer", "description": "The user's configured reminder threshold, echoed back for convenience" },
+					"consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"], "description": "The user's configured consumption display format, echoed back for convenience" },
 					"currencySymbol": { "type": "string", "description": "The user's configured currency symbol, shown after every money value here" },
 					"reminders": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } }
 				}
@@ -160,7 +164,8 @@
 				"type": "object",
 				"properties": {
 					"reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "default": 1, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" },
-					"currencySymbol": { "type": "string", "maxLength": 8, "default": "€", "description": "Shown after every money value app-wide, e.g. \"60.00 €\"" }
+					"currencySymbol": { "type": "string", "maxLength": 8, "default": "€", "description": "Shown after every money value app-wide, e.g. \"60.00 €\"" },
+					"consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"], "default": "per100", "description": "\"per100\" e.g. L/100km, gal/100mi. \"perUnit\" e.g. km/L, mi/gal (MPG). Controls how consumption is displayed app-wide." }
 				}
 			}
 		}
@@ -301,7 +306,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
 				"requestBody": {
 					"required": false,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }, "currencySymbol": { "type": "string", "maxLength": 8 } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }, "currencySymbol": { "type": "string", "maxLength": 8 }, "consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"] } } } } }
 				},
 				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } } } } }
 			}
