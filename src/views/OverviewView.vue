@@ -4,6 +4,7 @@ import { t } from '@nextcloud/l10n'
 import MiniChart from '../components/MiniChart.vue'
 import { maintenanceTypeLabel } from '../utils/maintenanceTypes.js'
 import { fuelTypeLabel } from '../utils/fuelTypes.js'
+import { formatMoney } from '../utils/currency.js'
 
 const { detail } = inject('carDetail')
 
@@ -74,17 +75,17 @@ function formatDays(remaining) {
 			</div>
 			<div class="stat-card">
 				<span class="stat-label">{{ t('carfuelmaintance', 'Fuel spend') }}</span>
-				<span class="stat-value">{{ detail.stats.totalFuelCost }}</span>
+				<span class="stat-value">{{ formatMoney(detail.stats.totalFuelCost, detail.stats.currencySymbol) }}</span>
 			</div>
 			<div class="stat-card">
 				<span class="stat-label">{{ t('carfuelmaintance', 'Maintenance spend') }}</span>
-				<span class="stat-value">{{ detail.stats.totalMaintenanceCost }}</span>
+				<span class="stat-value">{{ formatMoney(detail.stats.totalMaintenanceCost, detail.stats.currencySymbol) }}</span>
 			</div>
 			<div class="stat-card">
 				<span class="stat-label">{{ t('carfuelmaintance', 'Cost per distance') }}</span>
 				<span class="stat-value">
 					<template v-if="detail.stats.costPerDistance !== null">
-						{{ detail.stats.costPerDistance }} / {{ detail.stats.odometerUnit }}
+						{{ formatMoney(detail.stats.costPerDistance, detail.stats.currencySymbol) }} / {{ detail.stats.odometerUnit }}
 					</template>
 					<template v-else>—</template>
 				</span>

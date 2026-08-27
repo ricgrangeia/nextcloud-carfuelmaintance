@@ -142,6 +142,7 @@
 						}
 					},
 					"reminderMonths": { "type": "integer", "description": "The user's configured reminder threshold, echoed back for convenience" },
+					"currencySymbol": { "type": "string", "description": "The user's configured currency symbol, shown after every money value here" },
 					"reminders": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } }
 				}
 			},
@@ -158,7 +159,8 @@
 			"Settings": {
 				"type": "object",
 				"properties": {
-					"reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "default": 1, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }
+					"reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "default": 1, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" },
+					"currencySymbol": { "type": "string", "maxLength": 8, "default": "€", "description": "Shown after every money value app-wide, e.g. \"60.00 €\"" }
 				}
 			}
 		}
@@ -295,11 +297,11 @@
 			},
 			"put": {
 				"operationId": "updateSettings",
-				"summary": "Update the authenticated user's preferences",
+				"summary": "Update the authenticated user's preferences. Only fields present in the request are changed.",
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
 				"requestBody": {
-					"required": true,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["reminderMonths"], "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" } } } } }
+					"required": false,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }, "currencySymbol": { "type": "string", "maxLength": 8 } } } } }
 				},
 				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } } } } }
 			}

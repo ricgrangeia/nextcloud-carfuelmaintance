@@ -121,7 +121,9 @@
         "LPG": "GPL",
         "None — single fuel": "Aucun — un seul carburant",
         "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Pas encore assez de données. Enregistrez au moins deux pleins complets de ce carburant pour voir des graphiques ici.",
-        "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Carburant secondaire (voitures bicarburant, ex. essence + GPL)"
+        "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Carburant secondaire (voitures bicarburant, ex. essence + GPL)",
+        "Currency symbol": "Symbole monétaire",
+        "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Affiché après chaque valeur monétaire dans toute l'application, ex. \"60.00 {symbol}\"."
     },
     "pluralForm": "nplurals=2; plural=(n > 1);"
 }

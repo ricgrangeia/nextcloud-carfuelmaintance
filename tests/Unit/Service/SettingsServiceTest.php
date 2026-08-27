@@ -49,4 +49,34 @@ class SettingsServiceTest extends TestCase {
 
 		self::assertSame(1, $this->settings->setReminderMonths('alice', 0));
 	}
+
+	public function testDefaultCurrencySymbolIsEuro(): void {
+		$this->config->method('getUserValue')
+			->with('alice', Application::APP_ID, 'currencySymbol', '€')
+			->willReturn('€');
+
+		self::assertSame('€', $this->settings->getCurrencySymbol('alice'));
+	}
+
+	public function testReturnsStoredCurrencySymbol(): void {
+		$this->config->method('getUserValue')->willReturn('$');
+
+		self::assertSame('$', $this->settings->getCurrencySymbol('alice'));
+	}
+
+	public function testSetCurrencySymbolTrimsAndTruncates(): void {
+		$this->config->expects(self::once())
+			->method('setUserValue')
+			->with('alice', Application::APP_ID, 'currencySymbol', 'CHF-fran');
+
+		self::assertSame('CHF-fran', $this->settings->setCurrencySymbol('alice', '  CHF-francs  '));
+	}
+
+	public function testSetCurrencySymbolFallsBackToDefaultWhenBlank(): void {
+		$this->config->expects(self::once())
+			->method('setUserValue')
+			->with('alice', Application::APP_ID, 'currencySymbol', '€');
+
+		self::assertSame('€', $this->settings->setCurrencySymbol('alice', '   '));
+	}
 }

@@ -4,6 +4,7 @@ import { t } from '@nextcloud/l10n'
 import api from '../api/client.js'
 
 const reminderMonths = ref(1)
+const currencySymbol = ref('€')
 const loaded = ref(false)
 const saving = ref(false)
 const saved = ref(false)
@@ -15,6 +16,7 @@ function errorMessage(e) {
 onMounted(async () => {
 	const settings = await api.getSettings()
 	reminderMonths.value = settings.reminderMonths
+	currencySymbol.value = settings.currencySymbol
 	loaded.value = true
 })
 
@@ -22,8 +24,12 @@ async function save() {
 	saving.value = true
 	saved.value = false
 	try {
-		const settings = await api.updateSettings({ reminderMonths: Number(reminderMonths.value) })
+		const settings = await api.updateSettings({
+			reminderMonths: Number(reminderMonths.value),
+			currencySymbol: currencySymbol.value,
+		})
 		reminderMonths.value = settings.reminderMonths
+		currencySymbol.value = settings.currencySymbol
 		saved.value = true
 	} catch (e) {
 		window.alert(t('carfuelmaintance', 'Could not save settings: {message}', { message: errorMessage(e) }))
@@ -43,6 +49,13 @@ async function save() {
 			</label>
 			<p class="hint">
 				{{ t('carfuelmaintance', 'Applies to maintenance reminders with a "next due" date, e.g. IUC road tax or insurance renewal — a reminder is marked "due soon" once it falls within this many months.') }}
+			</p>
+			<label class="dialog-field">
+				<span class="dialog-label">{{ t('carfuelmaintance', 'Currency symbol') }}</span>
+				<input v-model="currencySymbol" type="text" maxlength="8">
+			</label>
+			<p class="hint">
+				{{ t('carfuelmaintance', 'Shown after every money value across the app, e.g. "60.00 {symbol}".', { symbol: currencySymbol }) }}
 			</p>
 			<div class="actions-row">
 				<button type="submit" class="save-btn" :disabled="saving">

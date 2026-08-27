@@ -122,6 +122,8 @@ OC.L10N.register(
     "LPG": "GLP",
     "None — single fuel": "Ninguno — combustible único",
     "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Aún no hay datos suficientes. Registra al menos dos repostajes con el depósito lleno de este combustible para ver gráficos aquí.",
-    "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Combustible secundario (coches bicombustible, p. ej. gasolina + GLP)"
+    "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Combustible secundario (coches bicombustible, p. ej. gasolina + GLP)",
+    "Currency symbol": "Símbolo de moneda",
+    "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Se muestra después de cada valor monetario en toda la aplicación, p. ej. \"60.00 {symbol}\"."
     },
     "nplurals=2; plural=(n != 1);");

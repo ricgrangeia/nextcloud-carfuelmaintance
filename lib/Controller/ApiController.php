@@ -86,8 +86,8 @@ class ApiController extends OCSController {
 				['method' => 'POST', 'path' => '/api/v1/cars/{carId}/maintenance', 'summary' => 'Log maintenance work (entryDate, type, odometer, description, cost, workshop, nextDueDate, nextDueOdometer)'],
 				['method' => 'PUT', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Update a maintenance entry'],
 				['method' => 'DELETE', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Delete a maintenance entry'],
-				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon")'],
-				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths)'],
+				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon"; currencySymbol: shown after every money value app-wide)'],
+				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths, currencySymbol) — only fields present in the request are changed'],
 			],
 		]);
 	}
@@ -398,16 +398,26 @@ class ApiController extends OCSController {
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'GET', url: '/api/v1/settings')]
 	public function getSettings(): DataResponse {
+		$userId = $this->getUserId();
 		return new DataResponse([
-			'reminderMonths' => $this->settingsService->getReminderMonths($this->getUserId()),
+			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
+			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 		]);
 	}
 
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'PUT', url: '/api/v1/settings')]
-	public function updateSettings(int $reminderMonths): DataResponse {
+	public function updateSettings(?int $reminderMonths = null, ?string $currencySymbol = null): DataResponse {
+		$userId = $this->getUserId();
+		if ($reminderMonths !== null) {
+			$this->settingsService->setReminderMonths($userId, $reminderMonths);
+		}
+		if ($currencySymbol !== null) {
+			$this->settingsService->setCurrencySymbol($userId, $currencySymbol);
+		}
 		return new DataResponse([
-			'reminderMonths' => $this->settingsService->setReminderMonths($this->getUserId(), $reminderMonths),
+			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
+			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 		]);
 	}
 }

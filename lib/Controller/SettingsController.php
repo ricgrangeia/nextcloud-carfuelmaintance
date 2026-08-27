@@ -29,16 +29,26 @@ class SettingsController extends Controller {
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'GET', url: '/api/settings')]
 	public function index(): DataResponse {
+		$userId = $this->getUserId();
 		return new DataResponse([
-			'reminderMonths' => $this->settingsService->getReminderMonths($this->getUserId()),
+			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
+			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 		]);
 	}
 
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'PUT', url: '/api/settings')]
-	public function update(int $reminderMonths): DataResponse {
+	public function update(?int $reminderMonths = null, ?string $currencySymbol = null): DataResponse {
+		$userId = $this->getUserId();
+		if ($reminderMonths !== null) {
+			$this->settingsService->setReminderMonths($userId, $reminderMonths);
+		}
+		if ($currencySymbol !== null) {
+			$this->settingsService->setCurrencySymbol($userId, $currencySymbol);
+		}
 		return new DataResponse([
-			'reminderMonths' => $this->settingsService->setReminderMonths($this->getUserId(), $reminderMonths),
+			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
+			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 		]);
 	}
 }

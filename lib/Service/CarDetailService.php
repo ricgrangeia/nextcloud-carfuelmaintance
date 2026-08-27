@@ -29,7 +29,8 @@ class CarDetailService {
 		$fuelEntries = $this->fuelEntryMapper->findAllForCar($carId);
 		$maintenanceEntries = $this->maintenanceEntryMapper->findAllForCar($carId);
 		$reminderMonths = $this->settingsService->getReminderMonths($userId);
-		$stats = $this->statsService->computeCarStats($car, $fuelEntries, $maintenanceEntries, new \DateTimeImmutable('today'), $reminderMonths);
+		$currencySymbol = $this->settingsService->getCurrencySymbol($userId);
+		$stats = $this->statsService->computeCarStats($car, $fuelEntries, $maintenanceEntries, new \DateTimeImmutable('today'), $reminderMonths, $currencySymbol);
 
 		return [
 			'car' => $car,

@@ -122,6 +122,8 @@ OC.L10N.register(
     "LPG": "Autogas (LPG)",
     "None — single fuel": "Keiner — nur ein Kraftstoff",
     "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Noch nicht genügend Daten. Erfassen Sie mindestens zwei Volltankungen dieser Kraftstoffart, um hier Diagramme zu sehen.",
-    "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Zweiter Kraftstoff (Bifuel-Fahrzeuge, z. B. Benzin + Autogas)"
+    "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Zweiter Kraftstoff (Bifuel-Fahrzeuge, z. B. Benzin + Autogas)",
+    "Currency symbol": "Währungssymbol",
+    "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Wird nach jedem Geldbetrag in der gesamten App angezeigt, z. B. \"60.00 {symbol}\"."
     },
     "nplurals=2; plural=(n != 1);");

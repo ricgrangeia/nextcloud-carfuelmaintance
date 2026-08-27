@@ -6,6 +6,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import api from '../api/client.js'
 import { ENTRY_FUEL_TYPES, fuelTypeLabel } from '../utils/fuelTypes.js'
+import { formatMoney } from '../utils/currency.js'
 
 const props = defineProps({
 	id: { type: [String, Number], required: true },
@@ -176,8 +177,8 @@ const dialogButtons = computed(() => [
 					<td>{{ entry.odometer }} {{ detail.stats.odometerUnit }}</td>
 					<td>{{ entry.quantity }} {{ entry.unit }}</td>
 					<td>{{ entry.fullTank ? t('carfuelmaintance', 'Yes') : t('carfuelmaintance', 'No') }}</td>
-					<td>{{ entry.pricePerUnit ?? '—' }}</td>
-					<td>{{ entry.totalCost ?? '—' }}</td>
+					<td>{{ formatMoney(entry.pricePerUnit, detail.stats.currencySymbol) ?? '—' }}</td>
+					<td>{{ formatMoney(entry.totalCost, detail.stats.currencySymbol) ?? '—' }}</td>
 					<td>{{ entry.station || '—' }}</td>
 					<td class="row-actions">
 						<button type="button" class="icon-btn" :aria-label="t('carfuelmaintance', 'Edit')" :title="t('carfuelmaintance', 'Edit')" @click="openEditForm(entry)">
@@ -233,11 +234,11 @@ const dialogButtons = computed(() => [
 				</div>
 				<div class="dialog-row">
 					<label class="dialog-field">
-						<span class="dialog-label">{{ t('carfuelmaintance', 'Price per unit') }}</span>
+						<span class="dialog-label">{{ t('carfuelmaintance', 'Price per unit') }} ({{ detail.stats.currencySymbol }})</span>
 						<input v-model="form.pricePerUnit" type="number" step="0.0001" min="0">
 					</label>
 					<label class="dialog-field">
-						<span class="dialog-label">{{ t('carfuelmaintance', 'Total cost') }}</span>
+						<span class="dialog-label">{{ t('carfuelmaintance', 'Total cost') }} ({{ detail.stats.currencySymbol }})</span>
 						<input v-model="form.totalCost" type="number" step="0.01" min="0">
 					</label>
 				</div>

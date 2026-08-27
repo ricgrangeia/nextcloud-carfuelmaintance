@@ -121,7 +121,9 @@
         "LPG": "LPG",
         "None — single fuel": "Geen — één brandstof",
         "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Nog niet genoeg gegevens. Registreer minstens twee volle tankbeurten van deze brandstof om hier grafieken te zien.",
-        "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Secundaire brandstof (bifuel-auto's, bijv. benzine + LPG)"
+        "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Secundaire brandstof (bifuel-auto's, bijv. benzine + LPG)",
+        "Currency symbol": "Valutasymbool",
+        "Shown after every money value across the app, e.g. \"60.00 {symbol}\".": "Wordt na elk geldbedrag in de hele app getoond, bijv. \"60.00 {symbol}\"."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

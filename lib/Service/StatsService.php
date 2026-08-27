@@ -21,8 +21,9 @@ class StatsService {
 	 * @param FuelEntry[] $fuelEntries sorted by entryDate ascending
 	 * @param MaintenanceEntry[] $maintenanceEntries
 	 * @param int $reminderMonths how many months ahead of a due date counts as "due soon"
+	 * @param string $currencySymbol the user's configured currency symbol, echoed back for display
 	 */
-	public function computeCarStats(Car $car, array $fuelEntries, array $maintenanceEntries, \DateTimeImmutable $today, int $reminderMonths = 1): array {
+	public function computeCarStats(Car $car, array $fuelEntries, array $maintenanceEntries, \DateTimeImmutable $today, int $reminderMonths = 1, string $currencySymbol = '€'): array {
 		$byOdometer = $fuelEntries;
 		usort($byOdometer, static fn (FuelEntry $a, FuelEntry $b) => $a->getOdometer() <=> $b->getOdometer());
 
@@ -67,6 +68,7 @@ class StatsService {
 			// separately per fuel type rather than as a single blended average.
 			'consumptionByFuelType' => $this->consumptionByFuelType($byOdometer),
 			'reminderMonths' => $reminderMonths,
+			'currencySymbol' => $currencySymbol,
 			'reminders' => $this->buildReminders($maintenanceEntries, $currentOdometer, $today, $reminderMonths),
 		];
 	}

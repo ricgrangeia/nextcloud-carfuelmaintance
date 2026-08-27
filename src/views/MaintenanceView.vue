@@ -6,6 +6,7 @@ import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import api from '../api/client.js'
 import { MAINTENANCE_TYPES, maintenanceTypeLabel } from '../utils/maintenanceTypes.js'
+import { formatMoney } from '../utils/currency.js'
 
 const props = defineProps({
 	id: { type: [String, Number], required: true },
@@ -148,7 +149,7 @@ const dialogButtons = computed(() => [
 					<td>{{ typeLabel(entry.type) }}</td>
 					<td>{{ entry.odometer !== null ? `${entry.odometer} ${detail.stats.odometerUnit}` : '—' }}</td>
 					<td>{{ entry.description || '—' }}</td>
-					<td>{{ entry.cost ?? '—' }}</td>
+					<td>{{ formatMoney(entry.cost, detail.stats.currencySymbol) ?? '—' }}</td>
 					<td>{{ entry.workshop || '—' }}</td>
 					<td>
 						<template v-if="entry.nextDueDate || entry.nextDueOdometer !== null">
@@ -197,7 +198,7 @@ const dialogButtons = computed(() => [
 						<input v-model="form.odometer" type="number" step="0.1" min="0">
 					</label>
 					<label class="dialog-field">
-						<span class="dialog-label">{{ t('carfuelmaintance', 'Cost') }}</span>
+						<span class="dialog-label">{{ t('carfuelmaintance', 'Cost') }} ({{ detail.stats.currencySymbol }})</span>
 						<input v-model="form.cost" type="number" step="0.01" min="0">
 					</label>
 				</div>
