@@ -45,6 +45,7 @@ class FuelController extends Controller {
 		string $entryDate,
 		float $odometer,
 		float $quantity,
+		string $fuelType = 'gasoline',
 		string $unit = 'L',
 		?float $pricePerUnit = null,
 		?float $totalCost = null,
@@ -55,7 +56,7 @@ class FuelController extends Controller {
 	): DataResponse {
 		try {
 			return new DataResponse(
-				$this->fuelService->create($carId, $this->getUserId(), new \DateTimeImmutable($entryDate), $odometer, $quantity, $unit, $pricePerUnit, $totalCost, $fullTank, $station, $notes, $sortOrder),
+				$this->fuelService->create($carId, $this->getUserId(), new \DateTimeImmutable($entryDate), $odometer, $quantity, $fuelType, $unit, $pricePerUnit, $totalCost, $fullTank, $station, $notes, $sortOrder),
 				Http::STATUS_CREATED,
 			);
 		} catch (DoesNotExistException) {
@@ -70,6 +71,7 @@ class FuelController extends Controller {
 	public function update(
 		int $id,
 		?string $entryDate = null,
+		?string $fuelType = null,
 		?float $odometer = null,
 		?float $quantity = null,
 		?string $unit = null,
@@ -90,6 +92,7 @@ class FuelController extends Controller {
 				$id,
 				$this->getUserId(),
 				$date,
+				$fuelType,
 				$odometer,
 				$quantity,
 				$unit,

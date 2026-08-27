@@ -113,7 +113,15 @@
         "Settings": "Ajustes",
         "Tires": "Neumáticos",
         "Warn me this many months before a due date": "Avisarme con esta cantidad de meses de antelación a una fecha límite",
-        "Warns {n} month(s) ahead — change": "Avisa con {n} mes(es) de antelación — cambiar"
+        "Warns {n} month(s) ahead — change": "Avisa con {n} mes(es) de antelación — cambiar",
+        "Diesel": "Diésel",
+        "Electricity": "Electricidad",
+        "Gasoline": "Gasolina",
+        "Hybrid": "Híbrido",
+        "LPG": "GLP",
+        "None — single fuel": "Ninguno — combustible único",
+        "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Aún no hay datos suficientes. Registra al menos dos repostajes con el depósito lleno de este combustible para ver gráficos aquí.",
+        "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Combustible secundario (coches bicombustible, p. ej. gasolina + GLP)"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -52,15 +52,6 @@ class StatsService {
 			? max(0.0, end($byOdometer)->getOdometer() - $byOdometer[0]->getOdometer())
 			: 0.0;
 
-		[$fuelUsedBetweenFulls, $distanceBetweenFulls, $fuelUnit, $history] = $this->consumptionBetweenFullTanks($byOdometer);
-
-		$avgConsumptionPer100 = ($distanceBetweenFulls > 0 && $fuelUsedBetweenFulls > 0)
-			? round($fuelUsedBetweenFulls / $distanceBetweenFulls * 100, 2)
-			: null;
-		$avgDistancePerUnit = ($fuelUsedBetweenFulls > 0)
-			? round($distanceBetweenFulls / $fuelUsedBetweenFulls, 2)
-			: null;
-
 		return [
 			'currentOdometer' => $currentOdometer,
 			'odometerUnit' => $car->getOdometerUnit(),
@@ -71,23 +62,53 @@ class StatsService {
 			'totalMaintenanceCost' => round($totalMaintenanceCost, 2),
 			'totalCost' => round($totalFuelCost + $totalMaintenanceCost, 2),
 			'costPerDistance' => $totalDistance > 0 ? round(($totalFuelCost + $totalMaintenanceCost) / $totalDistance, 3) : null,
-			'fuelUnit' => $fuelUnit,
-			'avgConsumptionPer100' => $avgConsumptionPer100,
-			'avgDistancePerUnit' => $avgDistancePerUnit,
-			'consumptionHistory' => $history,
+			// A bifuel car (e.g. gasoline/LPG) mixes two different substances in
+			// the same odometer log, so consumption is computed and reported
+			// separately per fuel type rather than as a single blended average.
+			'consumptionByFuelType' => $this->consumptionByFuelType($byOdometer),
 			'reminderMonths' => $reminderMonths,
 			'reminders' => $this->buildReminders($maintenanceEntries, $currentOdometer, $today, $reminderMonths),
 		];
 	}
 
 	/**
+	 * @param FuelEntry[] $sortedByOdometer all fuel entries, sorted by odometer ascending
+	 * @return array<int, array{fuelType: string, unit: string, entryCount: int, avgConsumptionPer100: ?float, avgDistancePerUnit: ?float, history: array}>
+	 */
+	private function consumptionByFuelType(array $sortedByOdometer): array {
+		$byType = [];
+		foreach ($sortedByOdometer as $entry) {
+			$byType[$entry->getFuelType()][] = $entry;
+		}
+
+		$result = [];
+		foreach ($byType as $fuelType => $entries) {
+			[$fuelUsed, $distance, $unit, $history] = $this->consumptionBetweenFullTanks($entries);
+
+			$result[] = [
+				'fuelType' => $fuelType,
+				'unit' => $unit,
+				'entryCount' => count($entries),
+				'avgConsumptionPer100' => ($distance > 0 && $fuelUsed > 0) ? round($fuelUsed / $distance * 100, 2) : null,
+				'avgDistancePerUnit' => $fuelUsed > 0 ? round($distance / $fuelUsed, 2) : null,
+				'history' => $history,
+			];
+		}
+
+		usort($result, static fn (array $a, array $b) => $b['entryCount'] <=> $a['entryCount']);
+
+		return $result;
+	}
+
+	/**
 	 * Standard fill-to-fill consumption: between two consecutive full-tank
-	 * entries (sorted by odometer), the fuel used to cover that distance is
-	 * the sum of every fill-up quantity in the interval (partial fills
-	 * included), ending with the closing full-tank fill-up. Also returns
-	 * that same breakdown per interval, for charting consumption over time.
+	 * entries of the same fuel type (sorted by odometer), the fuel used to
+	 * cover that distance is the sum of every fill-up quantity in the
+	 * interval (partial fills included), ending with the closing full-tank
+	 * fill-up. Also returns that same breakdown per interval, for charting
+	 * consumption over time.
 	 *
-	 * @param FuelEntry[] $sortedByOdometer
+	 * @param FuelEntry[] $sortedByOdometer entries of a single fuel type, sorted by odometer ascending
 	 * @return array{0: float, 1: float, 2: string, 3: array}
 	 */
 	private function consumptionBetweenFullTanks(array $sortedByOdometer): array {

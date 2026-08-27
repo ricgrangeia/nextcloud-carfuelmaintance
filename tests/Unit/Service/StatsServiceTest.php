@@ -25,7 +25,7 @@ class StatsServiceTest extends TestCase {
 		return $car;
 	}
 
-	private function fuel(float $odometer, float $quantity, bool $fullTank, ?float $totalCost = null, string $unit = 'L'): FuelEntry {
+	private function fuel(float $odometer, float $quantity, bool $fullTank, ?float $totalCost = null, string $unit = 'L', string $fuelType = 'gasoline'): FuelEntry {
 		$entry = new FuelEntry();
 		$entry->setEntryDate(new \DateTimeImmutable('2026-01-01'));
 		$entry->setOdometer($odometer);
@@ -33,7 +33,17 @@ class StatsServiceTest extends TestCase {
 		$entry->setUnit($unit);
 		$entry->setFullTank($fullTank);
 		$entry->setTotalCost($totalCost);
+		$entry->setFuelType($fuelType);
 		return $entry;
+	}
+
+	private function fuelTypeStats(array $result, string $fuelType): ?array {
+		foreach ($result['consumptionByFuelType'] as $group) {
+			if ($group['fuelType'] === $fuelType) {
+				return $group;
+			}
+		}
+		return null;
 	}
 
 	public function testConsumptionBetweenTwoFullTanks(): void {
@@ -44,9 +54,10 @@ class StatsServiceTest extends TestCase {
 		];
 
 		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+		$gasoline = $this->fuelTypeStats($result, 'gasoline');
 
-		self::assertSame(8.0, $result['avgConsumptionPer100']);
-		self::assertSame(12.5, $result['avgDistancePerUnit']);
+		self::assertSame(8.0, $gasoline['avgConsumptionPer100']);
+		self::assertSame(12.5, $gasoline['avgDistancePerUnit']);
 	}
 
 	public function testPartialFillsAreAddedToTheClosingFullTank(): void {
@@ -59,7 +70,7 @@ class StatsServiceTest extends TestCase {
 
 		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
 
-		self::assertSame(8.0, $result['avgConsumptionPer100']);
+		self::assertSame(8.0, $this->fuelTypeStats($result, 'gasoline')['avgConsumptionPer100']);
 	}
 
 	public function testConsumptionHistoryHasOneEntryPerFullTankInterval(): void {
@@ -70,22 +81,24 @@ class StatsServiceTest extends TestCase {
 		];
 
 		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+		$history = $this->fuelTypeStats($result, 'gasoline')['history'];
 
-		self::assertCount(2, $result['consumptionHistory']);
-		self::assertSame('2026-01-01', $result['consumptionHistory'][0]['date']);
-		self::assertSame(500.0, $result['consumptionHistory'][0]['distance']);
-		self::assertSame(8.0, $result['consumptionHistory'][0]['consumptionPer100']);
-		self::assertSame(600.0, $result['consumptionHistory'][1]['distance']);
-		self::assertSame(8.0, $result['consumptionHistory'][1]['consumptionPer100']);
+		self::assertCount(2, $history);
+		self::assertSame('2026-01-01', $history[0]['date']);
+		self::assertSame(500.0, $history[0]['distance']);
+		self::assertSame(8.0, $history[0]['consumptionPer100']);
+		self::assertSame(600.0, $history[1]['distance']);
+		self::assertSame(8.0, $history[1]['consumptionPer100']);
 	}
 
 	public function testNoConsumptionWithoutTwoFullTanks(): void {
 		$entries = [$this->fuel(1000, 40.0, true)];
 
 		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+		$gasoline = $this->fuelTypeStats($result, 'gasoline');
 
-		self::assertNull($result['avgConsumptionPer100']);
-		self::assertNull($result['avgDistancePerUnit']);
+		self::assertNull($gasoline['avgConsumptionPer100']);
+		self::assertNull($gasoline['avgDistancePerUnit']);
 	}
 
 	public function testTotalsAndCostPerDistance(): void {
@@ -114,6 +127,40 @@ class StatsServiceTest extends TestCase {
 
 		self::assertSame(206811.0, $result['currentOdometer']);
 		self::assertSame(500.0, $result['totalDistance']);
+	}
+
+	public function testBifuelConsumptionIsComputedSeparatelyPerFuelType(): void {
+		// A gasoline/LPG car: LPG (small tank) is always filled to full, so its
+		// consumption is computable. Gasoline is topped up occasionally and
+		// never filled fully, so it must report "not enough data" rather than
+		// being mixed into the LPG numbers or silently ignored.
+		$entries = [
+			$this->fuel(1000, 35.0, true, null, 'L', 'lpg'),
+			$this->fuel(1100, 15.0, false, null, 'L', 'gasoline'),
+			$this->fuel(1300, 36.0, true, null, 'L', 'lpg'),
+			$this->fuel(1450, 10.0, false, null, 'L', 'gasoline'),
+			$this->fuel(1600, 34.0, true, null, 'L', 'lpg'),
+		];
+
+		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+
+		$lpg = $this->fuelTypeStats($result, 'lpg');
+		$gasoline = $this->fuelTypeStats($result, 'gasoline');
+
+		self::assertNotNull($lpg);
+		self::assertNotNull($gasoline);
+
+		// LPG: 300km/36L then 300km/34L.
+		self::assertCount(2, $lpg['history']);
+		self::assertEqualsWithDelta(12.0, $lpg['history'][0]['consumptionPer100'], 0.01);
+		self::assertEqualsWithDelta(11.33, $lpg['history'][1]['consumptionPer100'], 0.01);
+
+		// Gasoline never hit a full tank, so no interval could be closed.
+		self::assertCount(0, $gasoline['history']);
+		self::assertNull($gasoline['avgConsumptionPer100']);
+
+		// entryCount orders the groups, most-logged fuel type first.
+		self::assertSame('lpg', $result['consumptionByFuelType'][0]['fuelType']);
 	}
 
 	public function testReminderStatusOverdueDueSoonAndUpcoming(): void {

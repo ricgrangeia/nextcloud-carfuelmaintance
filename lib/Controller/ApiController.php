@@ -109,12 +109,13 @@ class ApiController extends OCSController {
 		?string $plate = null,
 		?int $year = null,
 		string $fuelType = 'gasoline',
+		?string $secondaryFuelType = null,
 		float $initialOdometer = 0.0,
 		string $odometerUnit = 'km',
 		?string $notes = null,
 	): DataResponse {
 		return new DataResponse(
-			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $initialOdometer, $odometerUnit, $notes),
+			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $secondaryFuelType, $initialOdometer, $odometerUnit, $notes),
 			Http::STATUS_CREATED,
 		);
 	}
@@ -143,6 +144,8 @@ class ApiController extends OCSController {
 		?int $year = null,
 		bool $yearProvided = false,
 		?string $fuelType = null,
+		?string $secondaryFuelType = null,
+		bool $secondaryFuelTypeProvided = false,
 		?float $initialOdometer = null,
 		?string $odometerUnit = null,
 		?string $notes = null,
@@ -163,6 +166,8 @@ class ApiController extends OCSController {
 				$year,
 				$yearProvided,
 				$fuelType,
+				$secondaryFuelType,
+				$secondaryFuelTypeProvided,
 				$initialOdometer,
 				$odometerUnit,
 				$notes,
@@ -204,6 +209,7 @@ class ApiController extends OCSController {
 		string $entryDate,
 		float $odometer,
 		float $quantity,
+		string $fuelType = 'gasoline',
 		string $unit = 'L',
 		?float $pricePerUnit = null,
 		?float $totalCost = null,
@@ -214,7 +220,7 @@ class ApiController extends OCSController {
 	): DataResponse {
 		try {
 			return new DataResponse(
-				$this->fuelService->create($carId, $this->getUserId(), new \DateTimeImmutable($entryDate), $odometer, $quantity, $unit, $pricePerUnit, $totalCost, $fullTank, $station, $notes, $sortOrder),
+				$this->fuelService->create($carId, $this->getUserId(), new \DateTimeImmutable($entryDate), $odometer, $quantity, $fuelType, $unit, $pricePerUnit, $totalCost, $fullTank, $station, $notes, $sortOrder),
 				Http::STATUS_CREATED,
 			);
 		} catch (DoesNotExistException) {
@@ -229,6 +235,7 @@ class ApiController extends OCSController {
 	public function updateFuel(
 		int $id,
 		?string $entryDate = null,
+		?string $fuelType = null,
 		?float $odometer = null,
 		?float $quantity = null,
 		?string $unit = null,
@@ -249,6 +256,7 @@ class ApiController extends OCSController {
 				$id,
 				$this->getUserId(),
 				$date,
+				$fuelType,
 				$odometer,
 				$quantity,
 				$unit,

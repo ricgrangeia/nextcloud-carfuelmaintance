@@ -44,6 +44,7 @@
 					"plate": { "type": "string", "nullable": true },
 					"year": { "type": "integer", "nullable": true },
 					"fuelType": { "type": "string", "enum": ["gasoline", "diesel", "lpg", "electric", "hybrid", "other"], "default": "gasoline" },
+					"secondaryFuelType": { "type": "string", "enum": ["gasoline", "diesel", "lpg", "electric", "hybrid", "other"], "nullable": true, "description": "Set for bifuel cars (e.g. gasoline + LPG); each fuel entry then records which of the two it filled, and consumption is computed separately per fuel type" },
 					"initialOdometer": { "type": "number", "format": "float", "default": 0, "description": "Odometer reading when tracking started; distance and stats are computed from this baseline" },
 					"odometerUnit": { "type": "string", "enum": ["km", "mi"], "default": "km" },
 					"notes": { "type": "string", "nullable": true },
@@ -57,6 +58,7 @@
 					"id": { "type": "integer" },
 					"carId": { "type": "integer" },
 					"entryDate": { "type": "string", "format": "date" },
+					"fuelType": { "type": "string", "enum": ["gasoline", "diesel", "lpg", "electric", "other"], "default": "gasoline", "description": "Which fuel this fill-up was, for bifuel cars. Consumption is computed separately per fuel type." },
 					"odometer": { "type": "number", "format": "float" },
 					"quantity": { "type": "number", "format": "float" },
 					"unit": { "type": "string", "enum": ["L", "gal", "kWh"], "default": "L" },
@@ -110,21 +112,32 @@
 					"totalMaintenanceCost": { "type": "number", "format": "float" },
 					"totalCost": { "type": "number", "format": "float" },
 					"costPerDistance": { "type": "number", "format": "float", "nullable": true },
-					"fuelUnit": { "type": "string" },
-					"avgConsumptionPer100": { "type": "number", "format": "float", "nullable": true, "description": "Fuel/energy unit per 100 distance units, fill-to-fill between full tanks" },
-					"avgDistancePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Distance units per fuel/energy unit, fill-to-fill between full tanks" },
-					"consumptionHistory": {
+					"consumptionByFuelType": {
 						"type": "array",
-						"description": "One entry per full-tank-to-full-tank interval, ordered oldest to newest, for charting distance/consumption over time",
+						"description": "One entry per distinct fuel type present in the fuel log (usually one, two for a bifuel car), ordered most-logged first. Consumption is never blended across fuel types.",
 						"items": {
 							"type": "object",
 							"properties": {
-								"date": { "type": "string", "format": "date", "description": "Date of the closing fill-up" },
-								"distance": { "type": "number", "format": "float" },
-								"fuelUsed": { "type": "number", "format": "float" },
+								"fuelType": { "type": "string" },
 								"unit": { "type": "string" },
-								"consumptionPer100": { "type": "number", "format": "float" },
-								"distancePerUnit": { "type": "number", "format": "float" }
+								"entryCount": { "type": "integer" },
+								"avgConsumptionPer100": { "type": "number", "format": "float", "nullable": true, "description": "Fuel/energy unit per 100 distance units, fill-to-fill between full tanks of this fuel type. Null if fewer than two full-tank fill-ups of this type were logged." },
+								"avgDistancePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Distance units per fuel/energy unit, fill-to-fill between full tanks of this fuel type" },
+								"history": {
+									"type": "array",
+									"description": "One entry per full-tank-to-full-tank interval of this fuel type, ordered oldest to newest, for charting distance/consumption over time",
+									"items": {
+										"type": "object",
+										"properties": {
+											"date": { "type": "string", "format": "date", "description": "Date of the closing fill-up" },
+											"distance": { "type": "number", "format": "float" },
+											"fuelUsed": { "type": "number", "format": "float" },
+											"unit": { "type": "string" },
+											"consumptionPer100": { "type": "number", "format": "float" },
+											"distancePerUnit": { "type": "number", "format": "float" }
+										}
+									}
+								}
 							}
 						}
 					},
@@ -172,7 +185,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
 				"requestBody": {
 					"required": true,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "model": { "type": "string" }, "plate": { "type": "string" }, "year": { "type": "integer" }, "fuelType": { "type": "string", "default": "gasoline" }, "initialOdometer": { "type": "number", "default": 0 }, "odometerUnit": { "type": "string", "default": "km" }, "notes": { "type": "string" } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "model": { "type": "string" }, "plate": { "type": "string" }, "year": { "type": "integer" }, "fuelType": { "type": "string", "default": "gasoline" }, "secondaryFuelType": { "type": "string", "description": "Set for bifuel cars, e.g. \"lpg\" on a gasoline car" }, "initialOdometer": { "type": "number", "default": 0 }, "odometerUnit": { "type": "string", "default": "km" }, "notes": { "type": "string" } } } } }
 				},
 				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Car" } } } } }
 			}
@@ -190,7 +203,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
 				"requestBody": {
 					"required": false,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "brandProvided": { "type": "boolean" }, "model": { "type": "string" }, "modelProvided": { "type": "boolean" }, "plate": { "type": "string" }, "plateProvided": { "type": "boolean" }, "year": { "type": "integer" }, "yearProvided": { "type": "boolean" }, "fuelType": { "type": "string" }, "initialOdometer": { "type": "number" }, "odometerUnit": { "type": "string" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" }, "archived": { "type": "boolean", "description": "true to archive, false to restore" } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "brandProvided": { "type": "boolean" }, "model": { "type": "string" }, "modelProvided": { "type": "boolean" }, "plate": { "type": "string" }, "plateProvided": { "type": "boolean" }, "year": { "type": "integer" }, "yearProvided": { "type": "boolean" }, "fuelType": { "type": "string" }, "secondaryFuelType": { "type": "string" }, "secondaryFuelTypeProvided": { "type": "boolean" }, "initialOdometer": { "type": "number" }, "odometerUnit": { "type": "string" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" }, "archived": { "type": "boolean", "description": "true to archive, false to restore" } } } } }
 				},
 				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Car" } } } }, "404": { "description": "Not found or not owned by the authenticated user" } }
 			},
@@ -214,7 +227,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
 				"requestBody": {
 					"required": true,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["entryDate", "odometer", "quantity"], "properties": { "entryDate": { "type": "string", "format": "date" }, "odometer": { "type": "number" }, "quantity": { "type": "number" }, "unit": { "type": "string", "default": "L" }, "pricePerUnit": { "type": "number" }, "totalCost": { "type": "number" }, "fullTank": { "type": "boolean", "default": true }, "station": { "type": "string" }, "notes": { "type": "string" } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["entryDate", "odometer", "quantity"], "properties": { "entryDate": { "type": "string", "format": "date" }, "fuelType": { "type": "string", "default": "gasoline", "description": "Which fuel this fill-up was, for bifuel cars" }, "odometer": { "type": "number" }, "quantity": { "type": "number" }, "unit": { "type": "string", "default": "L" }, "pricePerUnit": { "type": "number" }, "totalCost": { "type": "number" }, "fullTank": { "type": "boolean", "default": true }, "station": { "type": "string" }, "notes": { "type": "string" } } } } }
 				},
 				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FuelEntry" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Car not found or not owned by the authenticated user" } }
 			}
@@ -226,7 +239,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
 				"requestBody": {
 					"required": false,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "entryDate": { "type": "string", "format": "date" }, "odometer": { "type": "number" }, "quantity": { "type": "number" }, "unit": { "type": "string" }, "pricePerUnit": { "type": "number" }, "pricePerUnitProvided": { "type": "boolean" }, "totalCost": { "type": "number" }, "totalCostProvided": { "type": "boolean" }, "fullTank": { "type": "boolean" }, "station": { "type": "string" }, "stationProvided": { "type": "boolean" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "entryDate": { "type": "string", "format": "date" }, "fuelType": { "type": "string" }, "odometer": { "type": "number" }, "quantity": { "type": "number" }, "unit": { "type": "string" }, "pricePerUnit": { "type": "number" }, "pricePerUnitProvided": { "type": "boolean" }, "totalCost": { "type": "number" }, "totalCostProvided": { "type": "boolean" }, "fullTank": { "type": "boolean" }, "station": { "type": "string" }, "stationProvided": { "type": "boolean" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" } } } } }
 				},
 				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FuelEntry" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Not found or not owned by the authenticated user" } }
 			},

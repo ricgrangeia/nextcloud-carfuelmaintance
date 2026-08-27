@@ -5,6 +5,7 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import api from '../api/client.js'
+import { ENTRY_FUEL_TYPES, fuelTypeLabel } from '../utils/fuelTypes.js'
 
 const props = defineProps({
 	id: { type: [String, Number], required: true },
@@ -14,6 +15,15 @@ const { detail, reload } = inject('carDetail')
 
 const UNITS = ['L', 'gal', 'kWh']
 const form = ref(null)
+
+function typeLabel(type) {
+	return fuelTypeLabel(t, type)
+}
+
+function defaultFuelType() {
+	const carFuelType = detail.value.car.fuelType
+	return ENTRY_FUEL_TYPES.includes(carFuelType) ? carFuelType : 'gasoline'
+}
 
 function errorMessage(e) {
 	return e?.response?.data?.message || e?.message || String(e)
@@ -48,6 +58,7 @@ function openNewForm() {
 	form.value = {
 		id: null,
 		entryDate: today(),
+		fuelType: defaultFuelType(),
 		odometer: '',
 		quantity: '',
 		unit: 'L',
@@ -63,6 +74,7 @@ function openEditForm(entry) {
 	form.value = {
 		id: entry.id,
 		entryDate: entry.entryDate,
+		fuelType: entry.fuelType,
 		odometer: entry.odometer,
 		quantity: entry.quantity,
 		unit: entry.unit,
@@ -91,6 +103,7 @@ async function submitForm() {
 	}
 	const payload = {
 		entryDate: form.value.entryDate,
+		fuelType: form.value.fuelType,
 		odometer: Number(form.value.odometer),
 		quantity: Number(form.value.quantity),
 		unit: form.value.unit,
@@ -146,6 +159,7 @@ const dialogButtons = computed(() => [
 			<thead>
 				<tr>
 					<th>{{ t('carfuelmaintance', 'Date') }}</th>
+					<th>{{ t('carfuelmaintance', 'Fuel type') }}</th>
 					<th>{{ t('carfuelmaintance', 'Odometer') }}</th>
 					<th>{{ t('carfuelmaintance', 'Quantity') }}</th>
 					<th>{{ t('carfuelmaintance', 'Full tank') }}</th>
@@ -158,6 +172,7 @@ const dialogButtons = computed(() => [
 			<tbody>
 				<tr v-for="entry in detail.fuelEntries" :key="entry.id">
 					<td>{{ entry.entryDate }}</td>
+					<td>{{ typeLabel(entry.fuelType) }}</td>
 					<td>{{ entry.odometer }} {{ detail.stats.odometerUnit }}</td>
 					<td>{{ entry.quantity }} {{ entry.unit }}</td>
 					<td>{{ entry.fullTank ? t('carfuelmaintance', 'Yes') : t('carfuelmaintance', 'No') }}</td>
@@ -194,6 +209,14 @@ const dialogButtons = computed(() => [
 					<label class="dialog-field">
 						<span class="dialog-label">{{ t('carfuelmaintance', 'Odometer') }}</span>
 						<input v-model="form.odometer" type="number" step="0.1" min="0" required>
+					</label>
+				</div>
+				<div class="dialog-row">
+					<label class="dialog-field">
+						<span class="dialog-label">{{ t('carfuelmaintance', 'Fuel type') }}</span>
+						<select v-model="form.fuelType">
+							<option v-for="f in ENTRY_FUEL_TYPES" :key="f" :value="f">{{ typeLabel(f) }}</option>
+						</select>
 					</label>
 				</div>
 				<div class="dialog-row">

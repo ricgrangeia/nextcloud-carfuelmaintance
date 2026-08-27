@@ -1,8 +1,9 @@
 <script setup>
-import { inject, computed } from 'vue'
+import { inject } from 'vue'
 import { t } from '@nextcloud/l10n'
 import MiniChart from '../components/MiniChart.vue'
 import { maintenanceTypeLabel } from '../utils/maintenanceTypes.js'
+import { fuelTypeLabel } from '../utils/fuelTypes.js'
 
 const { detail } = inject('carDetail')
 
@@ -10,12 +11,17 @@ function typeLabel(type) {
 	return maintenanceTypeLabel(t, type)
 }
 
-const distancePoints = computed(() =>
-	detail.value.stats.consumptionHistory.map((h) => ({ date: h.date, value: h.distance })),
-)
-const consumptionPoints = computed(() =>
-	detail.value.stats.consumptionHistory.map((h) => ({ date: h.date, value: h.consumptionPer100 })),
-)
+function fuelLabel(type) {
+	return fuelTypeLabel(t, type)
+}
+
+function distancePoints(history) {
+	return history.map((h) => ({ date: h.date, value: h.distance }))
+}
+
+function consumptionPoints(history) {
+	return history.map((h) => ({ date: h.date, value: h.consumptionPer100 }))
+}
 
 const REMINDER_LABELS = {
 	overdue: () => t('carfuelmaintance', 'Overdue'),
@@ -57,11 +63,11 @@ function formatDays(remaining) {
 				<span class="stat-label">{{ t('carfuelmaintance', 'Total distance') }}</span>
 				<span class="stat-value">{{ detail.stats.totalDistance }} {{ detail.stats.odometerUnit }}</span>
 			</div>
-			<div class="stat-card">
-				<span class="stat-label">{{ t('carfuelmaintance', 'Avg. consumption') }}</span>
+			<div v-for="group in detail.stats.consumptionByFuelType" :key="group.fuelType" class="stat-card">
+				<span class="stat-label">{{ t('carfuelmaintance', 'Avg. consumption') }} ({{ fuelLabel(group.fuelType) }})</span>
 				<span class="stat-value">
-					<template v-if="detail.stats.avgConsumptionPer100 !== null">
-						{{ detail.stats.avgConsumptionPer100 }} {{ detail.stats.fuelUnit }}/100{{ detail.stats.odometerUnit }}
+					<template v-if="group.avgConsumptionPer100 !== null">
+						{{ group.avgConsumptionPer100 }} {{ group.unit }}/100{{ detail.stats.odometerUnit }}
 					</template>
 					<template v-else>—</template>
 				</span>
@@ -112,40 +118,46 @@ function formatDays(remaining) {
 
 		<div class="history">
 			<h3>{{ t('carfuelmaintance', 'Consumption history') }}</h3>
-			<p v-if="detail.stats.consumptionHistory.length === 0" class="empty">
+			<p v-if="detail.stats.consumptionByFuelType.length === 0" class="empty">
 				{{ t('carfuelmaintance', 'Not enough data yet. Log at least two full-tank fill-ups to see charts here.') }}
 			</p>
-			<template v-else>
-				<div class="charts-grid">
-					<div class="chart-card">
-						<span class="chart-title">{{ t('carfuelmaintance', 'Distance between fill-ups') }} ({{ detail.stats.odometerUnit }})</span>
-						<MiniChart type="bar" :points="distancePoints" :unit="detail.stats.odometerUnit" />
+			<div v-for="group in detail.stats.consumptionByFuelType" :key="group.fuelType" class="history-group">
+				<h4 v-if="detail.stats.consumptionByFuelType.length > 1">{{ fuelLabel(group.fuelType) }}</h4>
+				<p v-if="group.history.length === 0" class="empty">
+					{{ t('carfuelmaintance', 'Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.') }}
+				</p>
+				<template v-else>
+					<div class="charts-grid">
+						<div class="chart-card">
+							<span class="chart-title">{{ t('carfuelmaintance', 'Distance between fill-ups') }} ({{ detail.stats.odometerUnit }})</span>
+							<MiniChart type="bar" :points="distancePoints(group.history)" :unit="detail.stats.odometerUnit" />
+						</div>
+						<div class="chart-card">
+							<span class="chart-title">{{ t('carfuelmaintance', 'Consumption over time') }} ({{ group.unit }}/100{{ detail.stats.odometerUnit }})</span>
+							<MiniChart type="line" :points="consumptionPoints(group.history)" :unit="`${group.unit}/100${detail.stats.odometerUnit}`" />
+						</div>
 					</div>
-					<div class="chart-card">
-						<span class="chart-title">{{ t('carfuelmaintance', 'Consumption over time') }} ({{ detail.stats.fuelUnit }}/100{{ detail.stats.odometerUnit }})</span>
-						<MiniChart type="line" :points="consumptionPoints" :unit="`${detail.stats.fuelUnit}/100${detail.stats.odometerUnit}`" />
-					</div>
-				</div>
 
-				<table class="entries-table history-table">
-					<thead>
-						<tr>
-							<th>{{ t('carfuelmaintance', 'Date') }}</th>
-							<th>{{ t('carfuelmaintance', 'Distance') }}</th>
-							<th>{{ t('carfuelmaintance', 'Fuel used') }}</th>
-							<th>{{ t('carfuelmaintance', 'Consumption') }}</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-for="h in detail.stats.consumptionHistory" :key="h.date">
-							<td>{{ h.date }}</td>
-							<td>{{ h.distance }} {{ detail.stats.odometerUnit }}</td>
-							<td>{{ h.fuelUsed }} {{ h.unit }}</td>
-							<td>{{ h.consumptionPer100 }} {{ h.unit }}/100{{ detail.stats.odometerUnit }}</td>
-						</tr>
-					</tbody>
-				</table>
-			</template>
+					<table class="entries-table history-table">
+						<thead>
+							<tr>
+								<th>{{ t('carfuelmaintance', 'Date') }}</th>
+								<th>{{ t('carfuelmaintance', 'Distance') }}</th>
+								<th>{{ t('carfuelmaintance', 'Fuel used') }}</th>
+								<th>{{ t('carfuelmaintance', 'Consumption') }}</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="h in group.history" :key="h.date">
+								<td>{{ h.date }}</td>
+								<td>{{ h.distance }} {{ detail.stats.odometerUnit }}</td>
+								<td>{{ h.fuelUsed }} {{ h.unit }}</td>
+								<td>{{ h.consumptionPer100 }} {{ h.unit }}/100{{ detail.stats.odometerUnit }}</td>
+							</tr>
+						</tbody>
+					</table>
+				</template>
+			</div>
 		</div>
 	</div>
 </template>
@@ -262,6 +274,15 @@ function formatDays(remaining) {
 
 .history h3 {
 	margin: 0 0 12px;
+}
+
+.history-group {
+	margin-bottom: 24px;
+}
+
+.history-group h4 {
+	margin: 0 0 12px;
+	font-size: 14px;
 }
 
 .charts-grid {

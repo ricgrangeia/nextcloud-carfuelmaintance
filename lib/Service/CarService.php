@@ -40,6 +40,7 @@ class CarService {
 		?string $plate = null,
 		?int $year = null,
 		string $fuelType = 'gasoline',
+		?string $secondaryFuelType = null,
 		float $initialOdometer = 0.0,
 		string $odometerUnit = 'km',
 		?string $notes = null,
@@ -52,6 +53,7 @@ class CarService {
 		$car->setPlate($plate);
 		$car->setYear($year);
 		$car->setFuelType($fuelType !== '' ? $fuelType : 'gasoline');
+		$car->setSecondaryFuelType($secondaryFuelType !== '' ? $secondaryFuelType : null);
 		$car->setInitialOdometer($initialOdometer);
 		$car->setOdometerUnit($odometerUnit !== '' ? $odometerUnit : 'km');
 		$car->setNotes($notes);
@@ -76,6 +78,8 @@ class CarService {
 		?int $year = null,
 		bool $yearProvided = false,
 		?string $fuelType = null,
+		?string $secondaryFuelType = null,
+		bool $secondaryFuelTypeProvided = false,
 		?float $initialOdometer = null,
 		?string $odometerUnit = null,
 		?string $notes = null,
@@ -100,6 +104,9 @@ class CarService {
 		}
 		if ($fuelType !== null) {
 			$car->setFuelType($fuelType);
+		}
+		if ($secondaryFuelTypeProvided) {
+			$car->setSecondaryFuelType($secondaryFuelType !== '' ? $secondaryFuelType : null);
 		}
 		if ($initialOdometer !== null) {
 			$car->setInitialOdometer($initialOdometer);

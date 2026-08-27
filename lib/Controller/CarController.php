@@ -45,12 +45,13 @@ class CarController extends Controller {
 		?string $plate = null,
 		?int $year = null,
 		string $fuelType = 'gasoline',
+		?string $secondaryFuelType = null,
 		float $initialOdometer = 0.0,
 		string $odometerUnit = 'km',
 		?string $notes = null,
 	): DataResponse {
 		return new DataResponse(
-			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $initialOdometer, $odometerUnit, $notes),
+			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $secondaryFuelType, $initialOdometer, $odometerUnit, $notes),
 			Http::STATUS_CREATED,
 		);
 	}
@@ -79,6 +80,8 @@ class CarController extends Controller {
 		?int $year = null,
 		bool $yearProvided = false,
 		?string $fuelType = null,
+		?string $secondaryFuelType = null,
+		bool $secondaryFuelTypeProvided = false,
 		?float $initialOdometer = null,
 		?string $odometerUnit = null,
 		?string $notes = null,
@@ -99,6 +102,8 @@ class CarController extends Controller {
 				$year,
 				$yearProvided,
 				$fuelType,
+				$secondaryFuelType,
+				$secondaryFuelTypeProvided,
 				$initialOdometer,
 				$odometerUnit,
 				$notes,

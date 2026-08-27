@@ -113,7 +113,15 @@
         "Settings": "Instellingen",
         "Tires": "Banden",
         "Warn me this many months before a due date": "Waarschuw mij dit aantal maanden voor een vervaldatum",
-        "Warns {n} month(s) ahead — change": "Waarschuwt {n} maand(en) van tevoren — wijzigen"
+        "Warns {n} month(s) ahead — change": "Waarschuwt {n} maand(en) van tevoren — wijzigen",
+        "Diesel": "Diesel",
+        "Electricity": "Elektriciteit",
+        "Gasoline": "Benzine",
+        "Hybrid": "Hybride",
+        "LPG": "LPG",
+        "None — single fuel": "Geen — één brandstof",
+        "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Nog niet genoeg gegevens. Registreer minstens twee volle tankbeurten van deze brandstof om hier grafieken te zien.",
+        "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Secundaire brandstof (bifuel-auto's, bijv. benzine + LPG)"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

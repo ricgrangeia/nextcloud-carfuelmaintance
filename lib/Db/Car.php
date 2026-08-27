@@ -22,6 +22,8 @@ use OCP\DB\Types;
  * @method void setYear(?int $year)
  * @method string getFuelType()
  * @method void setFuelType(string $fuelType)
+ * @method ?string getSecondaryFuelType()
+ * @method void setSecondaryFuelType(?string $secondaryFuelType)
  * @method float getInitialOdometer()
  * @method void setInitialOdometer(float $initialOdometer)
  * @method string getOdometerUnit()
@@ -41,6 +43,7 @@ class Car extends Entity implements \JsonSerializable {
 	protected ?string $plate = null;
 	protected ?int $year = null;
 	protected string $fuelType = 'gasoline';
+	protected ?string $secondaryFuelType = null;
 	protected float $initialOdometer = 0.0;
 	protected string $odometerUnit = 'km';
 	protected ?string $notes = null;
@@ -55,6 +58,7 @@ class Car extends Entity implements \JsonSerializable {
 		$this->addType('plate', Types::STRING);
 		$this->addType('year', Types::INTEGER);
 		$this->addType('fuelType', Types::STRING);
+		$this->addType('secondaryFuelType', Types::STRING);
 		$this->addType('initialOdometer', Types::FLOAT);
 		$this->addType('odometerUnit', Types::STRING);
 		$this->addType('notes', Types::TEXT);
@@ -72,6 +76,7 @@ class Car extends Entity implements \JsonSerializable {
 			'plate' => $this->plate,
 			'year' => $this->year,
 			'fuelType' => $this->fuelType,
+			'secondaryFuelType' => $this->secondaryFuelType,
 			'initialOdometer' => $this->initialOdometer,
 			'odometerUnit' => $this->odometerUnit,
 			'notes' => $this->notes,

@@ -57,6 +57,7 @@ class FuelService {
 		\DateTimeImmutable $entryDate,
 		float $odometer,
 		float $quantity,
+		string $fuelType = 'gasoline',
 		string $unit = 'L',
 		?float $pricePerUnit = null,
 		?float $totalCost = null,
@@ -71,6 +72,7 @@ class FuelService {
 		$entry = new FuelEntry();
 		$entry->setCarId($carId);
 		$entry->setEntryDate($entryDate);
+		$entry->setFuelType($fuelType !== '' ? $fuelType : 'gasoline');
 		$entry->setOdometer($odometer);
 		$entry->setQuantity($quantity);
 		$entry->setUnit($unit !== '' ? $unit : 'L');
@@ -88,6 +90,7 @@ class FuelService {
 		int $id,
 		string $userId,
 		?\DateTimeImmutable $entryDate = null,
+		?string $fuelType = null,
 		?float $odometer = null,
 		?float $quantity = null,
 		?string $unit = null,
@@ -106,6 +109,9 @@ class FuelService {
 
 		if ($entryDate !== null) {
 			$entry->setEntryDate($entryDate);
+		}
+		if ($fuelType !== null) {
+			$entry->setFuelType($fuelType);
 		}
 		if ($odometer !== null) {
 			$entry->setOdometer($odometer);

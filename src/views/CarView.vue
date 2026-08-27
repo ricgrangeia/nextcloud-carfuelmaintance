@@ -6,6 +6,7 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import Cog from 'vue-material-design-icons/Cog.vue'
 import api from '../api/client.js'
 import { loadCars } from '../store/index.js'
+import { fuelTypeLabel } from '../utils/fuelTypes.js'
 
 const props = defineProps({
 	id: { type: [String, Number], required: true },
@@ -15,6 +16,10 @@ const router = useRouter()
 
 const FUEL_TYPES = ['gasoline', 'diesel', 'lpg', 'electric', 'hybrid', 'other']
 const ODOMETER_UNITS = ['km', 'mi']
+
+function typeLabel(type) {
+	return fuelTypeLabel(t, type)
+}
 
 const detail = ref(null)
 const settingsOpen = ref(false)
@@ -59,6 +64,8 @@ async function saveSettings() {
 			year: settingsForm.value.year ? Number(settingsForm.value.year) : null,
 			yearProvided: true,
 			fuelType: settingsForm.value.fuelType,
+			secondaryFuelType: settingsForm.value.secondaryFuelType || null,
+			secondaryFuelTypeProvided: true,
 			initialOdometer: Number(settingsForm.value.initialOdometer) || 0,
 			odometerUnit: settingsForm.value.odometerUnit,
 			notes: settingsForm.value.notes,
@@ -152,7 +159,7 @@ const settingsDialogButtons = computed(() => [
 					<label class="dialog-field">
 						<span class="dialog-label">{{ t('carfuelmaintance', 'Fuel type') }}</span>
 						<select v-model="settingsForm.fuelType">
-							<option v-for="f in FUEL_TYPES" :key="f" :value="f">{{ f }}</option>
+							<option v-for="f in FUEL_TYPES" :key="f" :value="f">{{ typeLabel(f) }}</option>
 						</select>
 					</label>
 					<label class="dialog-field">
@@ -162,6 +169,13 @@ const settingsDialogButtons = computed(() => [
 						</select>
 					</label>
 				</div>
+				<label class="dialog-field">
+					<span class="dialog-label">{{ t('carfuelmaintance', 'Secondary fuel type (bifuel cars, e.g. gasoline + LPG)') }}</span>
+					<select v-model="settingsForm.secondaryFuelType">
+						<option :value="null">{{ t('carfuelmaintance', 'None — single fuel') }}</option>
+						<option v-for="f in FUEL_TYPES" :key="f" :value="f">{{ typeLabel(f) }}</option>
+					</select>
+				</label>
 				<label class="dialog-field">
 					<span class="dialog-label">{{ t('carfuelmaintance', 'Starting odometer reading') }}</span>
 					<input v-model="settingsForm.initialOdometer" type="number" step="0.1" min="0">

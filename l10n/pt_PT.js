@@ -114,6 +114,14 @@ OC.L10N.register(
     "Settings": "Definições",
     "Tires": "Pneus",
     "Warn me this many months before a due date": "Avisar-me com este número de meses de antecedência de uma data limite",
-    "Warns {n} month(s) ahead — change": "Avisa com {n} mes(es) de antecedência — alterar"
+    "Warns {n} month(s) ahead — change": "Avisa com {n} mes(es) de antecedência — alterar",
+    "Diesel": "Gasóleo",
+    "Electricity": "Eletricidade",
+    "Gasoline": "Gasolina",
+    "Hybrid": "Híbrido",
+    "LPG": "GPL",
+    "None — single fuel": "Nenhum — combustível único",
+    "Not enough data yet. Log at least two full-tank fill-ups of this fuel type to see charts here.": "Ainda não há dados suficientes. Registe pelo menos dois abastecimentos de depósito cheio deste combustível para ver gráficos aqui.",
+    "Secondary fuel type (bifuel cars, e.g. gasoline + LPG)": "Combustível secundário (carros bicombustível, ex.: gasolina + GPL)"
     },
     "nplurals=2; plural=(n != 1);");
