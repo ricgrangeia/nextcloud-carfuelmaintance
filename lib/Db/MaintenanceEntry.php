@@ -10,8 +10,8 @@ use OCP\DB\Types;
 /**
  * @method int getCarId()
  * @method void setCarId(int $carId)
- * @method \DateTimeImmutable getEntryDate()
- * @method void setEntryDate(\DateTimeImmutable $entryDate)
+ * @method ?\DateTimeImmutable getEntryDate()
+ * @method void setEntryDate(?\DateTimeImmutable $entryDate)
  * @method ?float getOdometer()
  * @method void setOdometer(?float $odometer)
  * @method string getType()
@@ -33,7 +33,7 @@ use OCP\DB\Types;
  */
 class MaintenanceEntry extends Entity implements \JsonSerializable {
 	protected int $carId = 0;
-	protected \DateTimeImmutable $entryDate;
+	protected ?\DateTimeImmutable $entryDate = null;
 	protected ?float $odometer = null;
 	protected string $type = 'other';
 	protected ?string $description = null;
@@ -62,7 +62,7 @@ class MaintenanceEntry extends Entity implements \JsonSerializable {
 		return [
 			'id' => $this->id,
 			'carId' => $this->carId,
-			'entryDate' => $this->entryDate->format('Y-m-d'),
+			'entryDate' => $this->entryDate?->format('Y-m-d'),
 			'odometer' => $this->odometer,
 			'type' => $this->type,
 			'description' => $this->description,

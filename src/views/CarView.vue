@@ -31,6 +31,10 @@ provide('carDetail', {
 	reload: load,
 })
 
+function errorMessage(e) {
+	return e?.response?.data?.message || e?.message || String(e)
+}
+
 function openSettings() {
 	settingsForm.value = { ...detail.value.car }
 }
@@ -43,29 +47,39 @@ function closeSettings(isOpen) {
 }
 
 async function saveSettings() {
-	await api.updateCar(props.id, {
-		name: settingsForm.value.name,
-		brand: settingsForm.value.brand,
-		brandProvided: true,
-		model: settingsForm.value.model,
-		modelProvided: true,
-		plate: settingsForm.value.plate,
-		plateProvided: true,
-		year: settingsForm.value.year ? Number(settingsForm.value.year) : null,
-		yearProvided: true,
-		fuelType: settingsForm.value.fuelType,
-		initialOdometer: Number(settingsForm.value.initialOdometer) || 0,
-		odometerUnit: settingsForm.value.odometerUnit,
-		notes: settingsForm.value.notes,
-		notesProvided: true,
-	})
+	try {
+		await api.updateCar(props.id, {
+			name: settingsForm.value.name,
+			brand: settingsForm.value.brand,
+			brandProvided: true,
+			model: settingsForm.value.model,
+			modelProvided: true,
+			plate: settingsForm.value.plate,
+			plateProvided: true,
+			year: settingsForm.value.year ? Number(settingsForm.value.year) : null,
+			yearProvided: true,
+			fuelType: settingsForm.value.fuelType,
+			initialOdometer: Number(settingsForm.value.initialOdometer) || 0,
+			odometerUnit: settingsForm.value.odometerUnit,
+			notes: settingsForm.value.notes,
+			notesProvided: true,
+		})
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not save the car: {message}', { message: errorMessage(e) }))
+		return
+	}
 	settingsForm.value = null
 	settingsOpen.value = false
 	await Promise.all([load(), loadCars()])
 }
 
 async function archiveCar() {
-	await api.updateCar(props.id, { archived: !detail.value.car.archived })
+	try {
+		await api.updateCar(props.id, { archived: !detail.value.car.archived })
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not update the car: {message}', { message: errorMessage(e) }))
+		return
+	}
 	await Promise.all([load(), loadCars()])
 }
 
@@ -73,7 +87,12 @@ async function removeCar() {
 	if (!window.confirm(t('carfuelmaintance', 'Delete this car and all its fuel/maintenance entries? This cannot be undone.'))) {
 		return
 	}
-	await api.deleteCar(props.id)
+	try {
+		await api.deleteCar(props.id)
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not delete the car: {message}', { message: errorMessage(e) }))
+		return
+	}
 	await loadCars()
 	router.push({ name: 'cars' })
 }

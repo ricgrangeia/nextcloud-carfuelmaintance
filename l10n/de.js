@@ -82,6 +82,14 @@ OC.L10N.register(
     "in {n} days": "in {n} Tagen",
     "in {n} {unit}": "in {n} {unit}",
     "{n} days overdue": "{n} Tage überfällig",
-    "{n} {unit} overdue": "{n} {unit} überfällig"
+    "{n} {unit} overdue": "{n} {unit} überfällig",
+    "Cars": "Autos",
+    "Could not save the fuel entry: {message}": "Der Tankeintrag konnte nicht gespeichert werden: {message}",
+    "Could not delete the fuel entry: {message}": "Der Tankeintrag konnte nicht gelöscht werden: {message}",
+    "Could not save the maintenance entry: {message}": "Der Wartungseintrag konnte nicht gespeichert werden: {message}",
+    "Could not delete the maintenance entry: {message}": "Der Wartungseintrag konnte nicht gelöscht werden: {message}",
+    "Could not save the car: {message}": "Das Auto konnte nicht gespeichert werden: {message}",
+    "Could not update the car: {message}": "Das Auto konnte nicht aktualisiert werden: {message}",
+    "Could not delete the car: {message}": "Das Auto konnte nicht gelöscht werden: {message}"
     },
     "nplurals=2; plural=(n != 1);");

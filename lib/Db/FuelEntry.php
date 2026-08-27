@@ -10,8 +10,8 @@ use OCP\DB\Types;
 /**
  * @method int getCarId()
  * @method void setCarId(int $carId)
- * @method \DateTimeImmutable getEntryDate()
- * @method void setEntryDate(\DateTimeImmutable $entryDate)
+ * @method ?\DateTimeImmutable getEntryDate()
+ * @method void setEntryDate(?\DateTimeImmutable $entryDate)
  * @method float getOdometer()
  * @method void setOdometer(float $odometer)
  * @method float getQuantity()
@@ -33,7 +33,7 @@ use OCP\DB\Types;
  */
 class FuelEntry extends Entity implements \JsonSerializable {
 	protected int $carId = 0;
-	protected \DateTimeImmutable $entryDate;
+	protected ?\DateTimeImmutable $entryDate = null;
 	protected float $odometer = 0.0;
 	protected float $quantity = 0.0;
 	protected string $unit = 'L';
@@ -62,7 +62,7 @@ class FuelEntry extends Entity implements \JsonSerializable {
 		return [
 			'id' => $this->id,
 			'carId' => $this->carId,
-			'entryDate' => $this->entryDate->format('Y-m-d'),
+			'entryDate' => $this->entryDate?->format('Y-m-d'),
 			'odometer' => $this->odometer,
 			'quantity' => $this->quantity,
 			'unit' => $this->unit,

@@ -81,7 +81,15 @@
         "in {n} days": "tra {n} giorni",
         "in {n} {unit}": "tra {n} {unit}",
         "{n} days overdue": "{n} giorni di ritardo",
-        "{n} {unit} overdue": "{n} {unit} di ritardo"
+        "{n} {unit} overdue": "{n} {unit} di ritardo",
+        "Cars": "Auto",
+        "Could not save the fuel entry: {message}": "Impossibile salvare il rifornimento: {message}",
+        "Could not delete the fuel entry: {message}": "Impossibile eliminare il rifornimento: {message}",
+        "Could not save the maintenance entry: {message}": "Impossibile salvare la manutenzione: {message}",
+        "Could not delete the maintenance entry: {message}": "Impossibile eliminare la manutenzione: {message}",
+        "Could not save the car: {message}": "Impossibile salvare l'auto: {message}",
+        "Could not update the car: {message}": "Impossibile aggiornare l'auto: {message}",
+        "Could not delete the car: {message}": "Impossibile eliminare l'auto: {message}"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

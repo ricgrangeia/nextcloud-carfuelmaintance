@@ -1,5 +1,5 @@
 <script setup>
-import { inject, ref, computed } from 'vue'
+import { inject, ref, computed, watch } from 'vue'
 import { t } from '@nextcloud/l10n'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
@@ -14,6 +14,31 @@ const { detail, reload } = inject('carDetail')
 
 const UNITS = ['L', 'gal', 'kWh']
 const form = ref(null)
+
+function errorMessage(e) {
+	return e?.response?.data?.message || e?.message || String(e)
+}
+
+// Whichever two of quantity/pricePerUnit/totalCost are filled in first
+// auto-fill the third; never overwrites a value the user already entered.
+watch(
+	() => form.value && [form.value.quantity, form.value.pricePerUnit, form.value.totalCost],
+	() => {
+		if (!form.value) {
+			return
+		}
+		const q = form.value.quantity === '' ? null : Number(form.value.quantity)
+		const p = form.value.pricePerUnit === '' ? null : Number(form.value.pricePerUnit)
+		const c = form.value.totalCost === '' ? null : Number(form.value.totalCost)
+		if (q !== null && p !== null && c === null) {
+			form.value.totalCost = Math.round(q * p * 100) / 100
+		} else if (q !== null && c !== null && p === null && q > 0) {
+			form.value.pricePerUnit = Math.round((c / q) * 10000) / 10000
+		} else if (p !== null && c !== null && q === null && p > 0) {
+			form.value.quantity = Math.round((c / p) * 1000) / 1000
+		}
+	},
+)
 
 function today() {
 	return new Date().toISOString().slice(0, 10)
@@ -79,10 +104,15 @@ async function submitForm() {
 		notes: form.value.notes || null,
 		notesProvided: true,
 	}
-	if (form.value.id === null) {
-		await api.createFuel(props.id, payload)
-	} else {
-		await api.updateFuel(form.value.id, payload)
+	try {
+		if (form.value.id === null) {
+			await api.createFuel(props.id, payload)
+		} else {
+			await api.updateFuel(form.value.id, payload)
+		}
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not save the fuel entry: {message}', { message: errorMessage(e) }))
+		return
 	}
 	form.value = null
 	await reload()
@@ -92,7 +122,12 @@ async function removeEntry(id) {
 	if (!window.confirm(t('carfuelmaintance', 'Delete this fuel entry?'))) {
 		return
 	}
-	await api.deleteFuel(id)
+	try {
+		await api.deleteFuel(id)
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not delete the fuel entry: {message}', { message: errorMessage(e) }))
+		return
+	}
 	await reload()
 }
 

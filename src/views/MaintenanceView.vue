@@ -15,6 +15,10 @@ const { detail, reload } = inject('carDetail')
 const TYPES = ['oil_change', 'tires', 'brakes', 'battery', 'filters', 'inspection', 'repair', 'other']
 const form = ref(null)
 
+function errorMessage(e) {
+	return e?.response?.data?.message || e?.message || String(e)
+}
+
 function today() {
 	return new Date().toISOString().slice(0, 10)
 }
@@ -82,10 +86,15 @@ async function submitForm() {
 		notes: form.value.notes || null,
 		notesProvided: true,
 	}
-	if (form.value.id === null) {
-		await api.createMaintenance(props.id, payload)
-	} else {
-		await api.updateMaintenance(form.value.id, payload)
+	try {
+		if (form.value.id === null) {
+			await api.createMaintenance(props.id, payload)
+		} else {
+			await api.updateMaintenance(form.value.id, payload)
+		}
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not save the maintenance entry: {message}', { message: errorMessage(e) }))
+		return
 	}
 	form.value = null
 	await reload()
@@ -95,7 +104,12 @@ async function removeEntry(id) {
 	if (!window.confirm(t('carfuelmaintance', 'Delete this maintenance entry?'))) {
 		return
 	}
-	await api.deleteMaintenance(id)
+	try {
+		await api.deleteMaintenance(id)
+	} catch (e) {
+		window.alert(t('carfuelmaintance', 'Could not delete the maintenance entry: {message}', { message: errorMessage(e) }))
+		return
+	}
 	await reload()
 }
 

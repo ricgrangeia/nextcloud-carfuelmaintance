@@ -8,7 +8,7 @@
 Fill-ups compute fuel consumption and cost per distance automatically; maintenance
 entries support due-date and due-mileage reminders. Includes a token-friendly API
 so a script or an AI assistant can log entries for you.]]></description>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="ricardo@grangeia.pt">Ricardo</author>
 	<namespace>CarFuelMaintance</namespace>
