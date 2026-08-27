@@ -14,14 +14,15 @@ use OCA\CarFuelMaintance\Db\MaintenanceEntry;
  * car's fuel and maintenance entries.
  */
 class StatsService {
-	private const DUE_SOON_DAYS = 30;
 	private const DUE_SOON_DISTANCE = 500.0;
+	private const DAYS_PER_MONTH = 30;
 
 	/**
 	 * @param FuelEntry[] $fuelEntries sorted by entryDate ascending
 	 * @param MaintenanceEntry[] $maintenanceEntries
+	 * @param int $reminderMonths how many months ahead of a due date counts as "due soon"
 	 */
-	public function computeCarStats(Car $car, array $fuelEntries, array $maintenanceEntries, \DateTimeImmutable $today): array {
+	public function computeCarStats(Car $car, array $fuelEntries, array $maintenanceEntries, \DateTimeImmutable $today, int $reminderMonths = 1): array {
 		$byOdometer = $fuelEntries;
 		usort($byOdometer, static fn (FuelEntry $a, FuelEntry $b) => $a->getOdometer() <=> $b->getOdometer());
 
@@ -51,7 +52,7 @@ class StatsService {
 			? max(0.0, end($byOdometer)->getOdometer() - $byOdometer[0]->getOdometer())
 			: 0.0;
 
-		[$fuelUsedBetweenFulls, $distanceBetweenFulls, $fuelUnit] = $this->consumptionBetweenFullTanks($byOdometer);
+		[$fuelUsedBetweenFulls, $distanceBetweenFulls, $fuelUnit, $history] = $this->consumptionBetweenFullTanks($byOdometer);
 
 		$avgConsumptionPer100 = ($distanceBetweenFulls > 0 && $fuelUsedBetweenFulls > 0)
 			? round($fuelUsedBetweenFulls / $distanceBetweenFulls * 100, 2)
@@ -73,7 +74,9 @@ class StatsService {
 			'fuelUnit' => $fuelUnit,
 			'avgConsumptionPer100' => $avgConsumptionPer100,
 			'avgDistancePerUnit' => $avgDistancePerUnit,
-			'reminders' => $this->buildReminders($maintenanceEntries, $currentOdometer, $today),
+			'consumptionHistory' => $history,
+			'reminderMonths' => $reminderMonths,
+			'reminders' => $this->buildReminders($maintenanceEntries, $currentOdometer, $today, $reminderMonths),
 		];
 	}
 
@@ -81,15 +84,17 @@ class StatsService {
 	 * Standard fill-to-fill consumption: between two consecutive full-tank
 	 * entries (sorted by odometer), the fuel used to cover that distance is
 	 * the sum of every fill-up quantity in the interval (partial fills
-	 * included), ending with the closing full-tank fill-up.
+	 * included), ending with the closing full-tank fill-up. Also returns
+	 * that same breakdown per interval, for charting consumption over time.
 	 *
 	 * @param FuelEntry[] $sortedByOdometer
-	 * @return array{0: float, 1: float, 2: string}
+	 * @return array{0: float, 1: float, 2: string, 3: array}
 	 */
 	private function consumptionBetweenFullTanks(array $sortedByOdometer): array {
 		$totalFuel = 0.0;
 		$totalDistance = 0.0;
 		$unit = 'L';
+		$history = [];
 
 		$previousFullOdometer = null;
 		$quantitySinceLastFull = 0.0;
@@ -107,6 +112,14 @@ class StatsService {
 				if ($distance > 0) {
 					$totalDistance += $distance;
 					$totalFuel += $quantitySinceLastFull;
+					$history[] = [
+						'date' => $entry->getEntryDate()?->format('Y-m-d'),
+						'distance' => round($distance, 1),
+						'fuelUsed' => round($quantitySinceLastFull, 3),
+						'unit' => $unit,
+						'consumptionPer100' => round($quantitySinceLastFull / $distance * 100, 2),
+						'distancePerUnit' => round($distance / $quantitySinceLastFull, 2),
+					];
 				}
 			}
 
@@ -114,14 +127,15 @@ class StatsService {
 			$quantitySinceLastFull = 0.0;
 		}
 
-		return [$totalFuel, $totalDistance, $unit];
+		return [$totalFuel, $totalDistance, $unit, $history];
 	}
 
 	/**
 	 * @param MaintenanceEntry[] $maintenanceEntries
 	 */
-	private function buildReminders(array $maintenanceEntries, float $currentOdometer, \DateTimeImmutable $today): array {
+	private function buildReminders(array $maintenanceEntries, float $currentOdometer, \DateTimeImmutable $today, int $reminderMonths): array {
 		$reminders = [];
+		$dueSoonDays = $reminderMonths * self::DAYS_PER_MONTH;
 
 		foreach ($maintenanceEntries as $entry) {
 			$dueDate = $entry->getNextDueDate();
@@ -135,7 +149,7 @@ class StatsService {
 
 			$overdue = ($daysRemaining !== null && $daysRemaining < 0) || ($distanceRemaining !== null && $distanceRemaining < 0);
 			$dueSoon = !$overdue && (
-				($daysRemaining !== null && $daysRemaining <= self::DUE_SOON_DAYS)
+				($daysRemaining !== null && $daysRemaining <= $dueSoonDays)
 				|| ($distanceRemaining !== null && $distanceRemaining <= self::DUE_SOON_DISTANCE)
 			);
 			$status = $overdue ? 'overdue' : ($dueSoon ? 'due_soon' : 'upcoming');

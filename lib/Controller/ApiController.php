@@ -8,6 +8,7 @@ use OCA\CarFuelMaintance\Service\CarDetailService;
 use OCA\CarFuelMaintance\Service\CarService;
 use OCA\CarFuelMaintance\Service\FuelService;
 use OCA\CarFuelMaintance\Service\MaintenanceService;
+use OCA\CarFuelMaintance\Service\SettingsService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\ApiRoute;
@@ -36,6 +37,7 @@ class ApiController extends OCSController {
 		private CarDetailService $carDetailService,
 		private FuelService $fuelService,
 		private MaintenanceService $maintenanceService,
+		private SettingsService $settingsService,
 		private IUserSession $userSession,
 	) {
 		parent::__construct($appName, $request);
@@ -84,6 +86,8 @@ class ApiController extends OCSController {
 				['method' => 'POST', 'path' => '/api/v1/cars/{carId}/maintenance', 'summary' => 'Log maintenance work (entryDate, type, odometer, description, cost, workshop, nextDueDate, nextDueOdometer)'],
 				['method' => 'PUT', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Update a maintenance entry'],
 				['method' => 'DELETE', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Delete a maintenance entry'],
+				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon")'],
+				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths)'],
 			],
 		]);
 	}
@@ -379,5 +383,23 @@ class ApiController extends OCSController {
 		} catch (DoesNotExistException) {
 			return $this->notFound();
 		}
+	}
+
+	// --- Settings -----------------------------------------------------------
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'GET', url: '/api/v1/settings')]
+	public function getSettings(): DataResponse {
+		return new DataResponse([
+			'reminderMonths' => $this->settingsService->getReminderMonths($this->getUserId()),
+		]);
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'PUT', url: '/api/v1/settings')]
+	public function updateSettings(int $reminderMonths): DataResponse {
+		return new DataResponse([
+			'reminderMonths' => $this->settingsService->setReminderMonths($this->getUserId(), $reminderMonths),
+		]);
 	}
 }

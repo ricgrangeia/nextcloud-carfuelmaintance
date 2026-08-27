@@ -5,11 +5,13 @@ import CarView from '../views/CarView.vue'
 import OverviewView from '../views/OverviewView.vue'
 import FuelView from '../views/FuelView.vue'
 import MaintenanceView from '../views/MaintenanceView.vue'
+import SettingsView from '../views/SettingsView.vue'
 
 export default createRouter({
 	history: createWebHashHistory(),
 	routes: [
 		{ path: '/', name: 'cars', component: CarsListView },
+		{ path: '/settings', name: 'settings', component: SettingsView },
 		{
 			path: '/cars/:id',
 			component: CarView,

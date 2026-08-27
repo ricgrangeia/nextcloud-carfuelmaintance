@@ -20,4 +20,7 @@ export default {
 	createMaintenance: (carId, payload) => data(axios.post(url(`/api/cars/${carId}/maintenance`), payload)),
 	updateMaintenance: (id, payload) => data(axios.put(url(`/api/maintenance/${id}`), payload)),
 	deleteMaintenance: (id) => data(axios.delete(url(`/api/maintenance/${id}`))),
+
+	getSettings: () => data(axios.get(url('/api/settings'))),
+	updateSettings: (payload) => data(axios.put(url('/api/settings'), payload)),
 }

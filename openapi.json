@@ -75,7 +75,7 @@
 					"carId": { "type": "integer" },
 					"entryDate": { "type": "string", "format": "date" },
 					"odometer": { "type": "number", "format": "float", "nullable": true },
-					"type": { "type": "string", "enum": ["oil_change", "tires", "brakes", "battery", "filters", "inspection", "repair", "other"], "default": "other" },
+					"type": { "type": "string", "enum": ["oil_change", "tires", "brakes", "battery", "filters", "inspection", "iuc", "insurance", "repair", "other"], "default": "other", "description": "Free-text in the database; these are just the values the bundled UI offers. \"iuc\" and \"insurance\" are meant for recurring fiscal/insurance renewals tracked via nextDueDate." },
 					"description": { "type": "string", "nullable": true },
 					"cost": { "type": "number", "format": "float", "nullable": true },
 					"workshop": { "type": "string", "nullable": true },
@@ -113,6 +113,22 @@
 					"fuelUnit": { "type": "string" },
 					"avgConsumptionPer100": { "type": "number", "format": "float", "nullable": true, "description": "Fuel/energy unit per 100 distance units, fill-to-fill between full tanks" },
 					"avgDistancePerUnit": { "type": "number", "format": "float", "nullable": true, "description": "Distance units per fuel/energy unit, fill-to-fill between full tanks" },
+					"consumptionHistory": {
+						"type": "array",
+						"description": "One entry per full-tank-to-full-tank interval, ordered oldest to newest, for charting distance/consumption over time",
+						"items": {
+							"type": "object",
+							"properties": {
+								"date": { "type": "string", "format": "date", "description": "Date of the closing fill-up" },
+								"distance": { "type": "number", "format": "float" },
+								"fuelUsed": { "type": "number", "format": "float" },
+								"unit": { "type": "string" },
+								"consumptionPer100": { "type": "number", "format": "float" },
+								"distancePerUnit": { "type": "number", "format": "float" }
+							}
+						}
+					},
+					"reminderMonths": { "type": "integer", "description": "The user's configured reminder threshold, echoed back for convenience" },
 					"reminders": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } }
 				}
 			},
@@ -124,6 +140,12 @@
 					"fuelEntries": { "type": "array", "items": { "$ref": "#/components/schemas/FuelEntry" } },
 					"maintenanceEntries": { "type": "array", "items": { "$ref": "#/components/schemas/MaintenanceEntry" } },
 					"stats": { "$ref": "#/components/schemas/CarStats" }
+				}
+			},
+			"Settings": {
+				"type": "object",
+				"properties": {
+					"reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "default": 1, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }
 				}
 			}
 		}
@@ -249,6 +271,24 @@
 				"summary": "Delete a maintenance entry",
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
 				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/settings": {
+			"get": {
+				"operationId": "getSettings",
+				"summary": "Get the authenticated user's preferences",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } } } } }
+			},
+			"put": {
+				"operationId": "updateSettings",
+				"summary": "Update the authenticated user's preferences",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
+				"requestBody": {
+					"required": true,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["reminderMonths"], "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } } } } }
 			}
 		}
 	}

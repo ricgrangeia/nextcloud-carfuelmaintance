@@ -5,6 +5,7 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import Pencil from 'vue-material-design-icons/Pencil.vue'
 import Delete from 'vue-material-design-icons/Delete.vue'
 import api from '../api/client.js'
+import { MAINTENANCE_TYPES, maintenanceTypeLabel } from '../utils/maintenanceTypes.js'
 
 const props = defineProps({
 	id: { type: [String, Number], required: true },
@@ -12,8 +13,12 @@ const props = defineProps({
 
 const { detail, reload } = inject('carDetail')
 
-const TYPES = ['oil_change', 'tires', 'brakes', 'battery', 'filters', 'inspection', 'repair', 'other']
+const TYPES = MAINTENANCE_TYPES
 const form = ref(null)
+
+function typeLabel(type) {
+	return maintenanceTypeLabel(t, type)
+}
 
 function errorMessage(e) {
 	return e?.response?.data?.message || e?.message || String(e)
@@ -140,7 +145,7 @@ const dialogButtons = computed(() => [
 			<tbody>
 				<tr v-for="entry in detail.maintenanceEntries" :key="entry.id">
 					<td>{{ entry.entryDate }}</td>
-					<td>{{ entry.type }}</td>
+					<td>{{ typeLabel(entry.type) }}</td>
 					<td>{{ entry.odometer !== null ? `${entry.odometer} ${detail.stats.odometerUnit}` : '—' }}</td>
 					<td>{{ entry.description || '—' }}</td>
 					<td>{{ entry.cost ?? '—' }}</td>
@@ -182,7 +187,7 @@ const dialogButtons = computed(() => [
 					<label class="dialog-field">
 						<span class="dialog-label">{{ t('carfuelmaintance', 'Type') }}</span>
 						<select v-model="form.type">
-							<option v-for="ty in TYPES" :key="ty" :value="ty">{{ ty }}</option>
+							<option v-for="ty in TYPES" :key="ty" :value="ty">{{ typeLabel(ty) }}</option>
 						</select>
 					</label>
 				</div>

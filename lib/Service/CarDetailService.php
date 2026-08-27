@@ -16,6 +16,7 @@ class CarDetailService {
 		private FuelEntryMapper $fuelEntryMapper,
 		private MaintenanceEntryMapper $maintenanceEntryMapper,
 		private StatsService $statsService,
+		private SettingsService $settingsService,
 	) {
 	}
 
@@ -27,7 +28,8 @@ class CarDetailService {
 		$car = $this->carService->find($carId, $userId);
 		$fuelEntries = $this->fuelEntryMapper->findAllForCar($carId);
 		$maintenanceEntries = $this->maintenanceEntryMapper->findAllForCar($carId);
-		$stats = $this->statsService->computeCarStats($car, $fuelEntries, $maintenanceEntries, new \DateTimeImmutable('today'));
+		$reminderMonths = $this->settingsService->getReminderMonths($userId);
+		$stats = $this->statsService->computeCarStats($car, $fuelEntries, $maintenanceEntries, new \DateTimeImmutable('today'), $reminderMonths);
 
 		return [
 			'car' => $car,

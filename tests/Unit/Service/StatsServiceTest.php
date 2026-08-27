@@ -62,6 +62,23 @@ class StatsServiceTest extends TestCase {
 		self::assertSame(8.0, $result['avgConsumptionPer100']);
 	}
 
+	public function testConsumptionHistoryHasOneEntryPerFullTankInterval(): void {
+		$entries = [
+			$this->fuel(1000, 40.0, true),
+			$this->fuel(1500, 40.0, true),
+			$this->fuel(2100, 48.0, true),
+		];
+
+		$result = $this->stats->computeCarStats($this->car(1000), $entries, [], new \DateTimeImmutable('2026-01-15'));
+
+		self::assertCount(2, $result['consumptionHistory']);
+		self::assertSame('2026-01-01', $result['consumptionHistory'][0]['date']);
+		self::assertSame(500.0, $result['consumptionHistory'][0]['distance']);
+		self::assertSame(8.0, $result['consumptionHistory'][0]['consumptionPer100']);
+		self::assertSame(600.0, $result['consumptionHistory'][1]['distance']);
+		self::assertSame(8.0, $result['consumptionHistory'][1]['consumptionPer100']);
+	}
+
 	public function testNoConsumptionWithoutTwoFullTanks(): void {
 		$entries = [$this->fuel(1000, 40.0, true)];
 

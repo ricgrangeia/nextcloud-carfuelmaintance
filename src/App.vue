@@ -6,6 +6,7 @@ import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
+import Cog from 'vue-material-design-icons/Cog.vue'
 import { t } from '@nextcloud/l10n'
 import { state, loadCars, toggleShowArchived } from './store/index.js'
 import api from './api/client.js'
@@ -71,6 +72,9 @@ function carDisplayName(car) {
 						<h4>{{ t('carfuelmaintance', 'Overview') }}</h4>
 						<p>{{ t('carfuelmaintance', 'Shows total distance, fuel and maintenance spend, average consumption, and any upcoming or overdue reminders for the selected car.') }}</p>
 					</HelpButton>
+					<button type="button" class="icon-btn" :aria-label="t('carfuelmaintance', 'Settings')" :title="t('carfuelmaintance', 'Settings')" @click="router.push({ name: 'settings' })">
+						<Cog :size="18" />
+					</button>
 				</div>
 			</template>
 		</NcAppNavigation>
@@ -99,5 +103,26 @@ function carDisplayName(car) {
 
 .nav-footer :deep(.app-navigation-new) {
 	flex: 1;
+}
+
+.icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	background: none;
+	border: none;
+	border-radius: 50%;
+	color: var(--color-text-maxcontrast);
+	cursor: pointer;
+	padding: 0;
+	vertical-align: middle;
+	flex-shrink: 0;
+}
+
+.icon-btn:hover {
+	background-color: var(--color-background-hover);
+	color: var(--color-main-text);
 }
 </style>

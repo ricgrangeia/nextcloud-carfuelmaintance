@@ -1,8 +1,21 @@
 <script setup>
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
 import { t } from '@nextcloud/l10n'
+import MiniChart from '../components/MiniChart.vue'
+import { maintenanceTypeLabel } from '../utils/maintenanceTypes.js'
 
 const { detail } = inject('carDetail')
+
+function typeLabel(type) {
+	return maintenanceTypeLabel(t, type)
+}
+
+const distancePoints = computed(() =>
+	detail.value.stats.consumptionHistory.map((h) => ({ date: h.date, value: h.distance })),
+)
+const consumptionPoints = computed(() =>
+	detail.value.stats.consumptionHistory.map((h) => ({ date: h.date, value: h.consumptionPer100 })),
+)
 
 const REMINDER_LABELS = {
 	overdue: () => t('carfuelmaintance', 'Overdue'),
@@ -73,14 +86,19 @@ function formatDays(remaining) {
 		</div>
 
 		<div class="reminders">
-			<h3>{{ t('carfuelmaintance', 'Maintenance reminders') }}</h3>
+			<div class="reminders-header">
+				<h3>{{ t('carfuelmaintance', 'Maintenance reminders') }}</h3>
+				<router-link :to="{ name: 'settings' }" class="reminders-settings-link">
+					{{ t('carfuelmaintance', 'Warns {n} month(s) ahead — change', { n: detail.stats.reminderMonths }) }}
+				</router-link>
+			</div>
 			<p v-if="detail.stats.reminders.length === 0" class="empty">
 				{{ t('carfuelmaintance', 'No upcoming reminders. Set a "next due" date or odometer on a maintenance entry to see it here.') }}
 			</p>
 			<ul v-else class="reminder-list">
 				<li v-for="reminder in detail.stats.reminders" :key="reminder.id" :class="['reminder-item', reminder.status]">
 					<span class="reminder-status">{{ reminderLabel(reminder.status) }}</span>
-					<span class="reminder-type">{{ reminder.type }}</span>
+					<span class="reminder-type">{{ typeLabel(reminder.type) }}</span>
 					<span v-if="reminder.description" class="reminder-desc">{{ reminder.description }}</span>
 					<span class="reminder-due">
 						<template v-if="reminder.nextDueDate">{{ reminder.nextDueDate }} ({{ formatDays(reminder.daysRemaining) }})</template>
@@ -90,6 +108,44 @@ function formatDays(remaining) {
 					</span>
 				</li>
 			</ul>
+		</div>
+
+		<div class="history">
+			<h3>{{ t('carfuelmaintance', 'Consumption history') }}</h3>
+			<p v-if="detail.stats.consumptionHistory.length === 0" class="empty">
+				{{ t('carfuelmaintance', 'Not enough data yet. Log at least two full-tank fill-ups to see charts here.') }}
+			</p>
+			<template v-else>
+				<div class="charts-grid">
+					<div class="chart-card">
+						<span class="chart-title">{{ t('carfuelmaintance', 'Distance between fill-ups') }} ({{ detail.stats.odometerUnit }})</span>
+						<MiniChart type="bar" :points="distancePoints" :unit="detail.stats.odometerUnit" />
+					</div>
+					<div class="chart-card">
+						<span class="chart-title">{{ t('carfuelmaintance', 'Consumption over time') }} ({{ detail.stats.fuelUnit }}/100{{ detail.stats.odometerUnit }})</span>
+						<MiniChart type="line" :points="consumptionPoints" :unit="`${detail.stats.fuelUnit}/100${detail.stats.odometerUnit}`" />
+					</div>
+				</div>
+
+				<table class="entries-table history-table">
+					<thead>
+						<tr>
+							<th>{{ t('carfuelmaintance', 'Date') }}</th>
+							<th>{{ t('carfuelmaintance', 'Distance') }}</th>
+							<th>{{ t('carfuelmaintance', 'Fuel used') }}</th>
+							<th>{{ t('carfuelmaintance', 'Consumption') }}</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="h in detail.stats.consumptionHistory" :key="h.date">
+							<td>{{ h.date }}</td>
+							<td>{{ h.distance }} {{ detail.stats.odometerUnit }}</td>
+							<td>{{ h.fuelUsed }} {{ h.unit }}</td>
+							<td>{{ h.consumptionPer100 }} {{ h.unit }}/100{{ detail.stats.odometerUnit }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</template>
 		</div>
 	</div>
 </template>
@@ -129,7 +185,22 @@ function formatDays(remaining) {
 }
 
 .reminders h3 {
-	margin: 0 0 12px;
+	margin: 0;
+}
+
+.reminders-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.reminders-settings-link {
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
+	text-decoration: underline;
+	white-space: nowrap;
 }
 
 .empty {
@@ -183,5 +254,58 @@ function formatDays(remaining) {
 	margin-left: auto;
 	font-size: 13px;
 	color: var(--color-text-maxcontrast);
+}
+
+.history {
+	margin-top: 32px;
+}
+
+.history h3 {
+	margin: 0 0 12px;
+}
+
+.charts-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.chart-card {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px 16px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+	background-color: var(--color-background-hover);
+}
+
+.chart-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.entries-table {
+	border-collapse: collapse;
+	width: 100%;
+	font-size: 13px;
+}
+
+.entries-table th,
+.entries-table td {
+	border: 1px solid var(--color-border);
+	padding: 6px 8px;
+	text-align: left;
+}
+
+.entries-table th {
+	background-color: var(--color-primary-element);
+	color: var(--color-primary-element-text);
+}
+
+.history-table {
+	max-width: 480px;
 }
 </style>
