@@ -45,7 +45,11 @@ class StatsService {
 		}
 
 		$currentOdometer = max($car->getInitialOdometer(), $maxFuelOdometer, $maxMaintenanceOdometer);
-		$totalDistance = max(0.0, $currentOdometer - $car->getInitialOdometer());
+		// Distance actually covered by the fuel log: first to last fill-up
+		// odometer reading, rather than relying on the car's starting odometer.
+		$totalDistance = count($byOdometer) >= 2
+			? max(0.0, end($byOdometer)->getOdometer() - $byOdometer[0]->getOdometer())
+			: 0.0;
 
 		[$fuelUsedBetweenFulls, $distanceBetweenFulls, $fuelUnit] = $this->consumptionBetweenFullTanks($byOdometer);
 

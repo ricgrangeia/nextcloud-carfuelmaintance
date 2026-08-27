@@ -84,6 +84,21 @@ class StatsServiceTest extends TestCase {
 		self::assertEqualsWithDelta(0.24, $result['costPerDistance'], 0.001);
 	}
 
+	public function testTotalDistanceIgnoresUnsetInitialOdometer(): void {
+		// A car left at the default initialOdometer=0 with high-mileage fuel
+		// entries must report the distance covered *between fill-ups*, not
+		// currentOdometer - 0 (which would wrongly equal currentOdometer).
+		$entries = [
+			$this->fuel(206311, 40.0, true),
+			$this->fuel(206811, 40.0, true),
+		];
+
+		$result = $this->stats->computeCarStats($this->car(0), $entries, [], new \DateTimeImmutable('2026-01-15'));
+
+		self::assertSame(206811.0, $result['currentOdometer']);
+		self::assertSame(500.0, $result['totalDistance']);
+	}
+
 	public function testReminderStatusOverdueDueSoonAndUpcoming(): void {
 		$today = new \DateTimeImmutable('2026-06-01');
 
