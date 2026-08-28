@@ -5,6 +5,7 @@ import CarView from '../views/CarView.vue'
 import OverviewView from '../views/OverviewView.vue'
 import FuelView from '../views/FuelView.vue'
 import MaintenanceView from '../views/MaintenanceView.vue'
+import TripsView from '../views/TripsView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import PartsView from '../views/PartsView.vue'
 
@@ -22,6 +23,7 @@ export default createRouter({
 				{ path: '', name: 'overview', component: OverviewView, props: true },
 				{ path: 'fuel', name: 'fuel', component: FuelView, props: true },
 				{ path: 'maintenance', name: 'maintenance', component: MaintenanceView, props: true },
+				{ path: 'trips', name: 'trips', component: TripsView, props: true },
 			],
 		},
 	],

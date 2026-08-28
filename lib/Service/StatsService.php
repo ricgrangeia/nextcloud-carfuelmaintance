@@ -72,6 +72,28 @@ class StatsService {
 			'currencySymbol' => $currencySymbol,
 			'consumptionFormat' => $consumptionFormat,
 			'reminders' => $this->buildReminders($maintenanceEntries, $currentOdometer, $today, $reminderMonths),
+			'tco' => $this->computeTco($car, $totalFuelCost, $totalMaintenanceCost, $currentOdometer, $today),
+		];
+	}
+
+	/** Total cost of ownership: purchase price plus every fuel/maintenance cost logged since. */
+	private function computeTco(Car $car, float $totalFuelCost, float $totalMaintenanceCost, float $currentOdometer, \DateTimeImmutable $today): array {
+		$purchasePrice = $car->getPurchasePrice();
+		$totalCostOfOwnership = round($totalFuelCost + $totalMaintenanceCost + ($purchasePrice ?? 0.0), 2);
+
+		$ownershipStart = $car->getPurchaseDate() ?? $car->getCreatedAt();
+		$ownershipDays = $ownershipStart !== null ? max(1, $ownershipStart->diff($today)->days) : null;
+		$ownershipYears = $ownershipDays !== null ? $ownershipDays / 365.25 : null;
+
+		$distanceSincePurchase = max(0.0, $currentOdometer - $car->getInitialOdometer());
+
+		return [
+			'purchasePrice' => $purchasePrice,
+			'purchaseDate' => $car->getPurchaseDate()?->format('Y-m-d'),
+			'totalCostOfOwnership' => $totalCostOfOwnership,
+			'ownershipDays' => $ownershipDays,
+			'costPerYear' => ($ownershipYears !== null && $ownershipYears > 0) ? round($totalCostOfOwnership / $ownershipYears, 2) : null,
+			'costPerDistance' => $distanceSincePurchase > 0 ? round($totalCostOfOwnership / $distanceSincePurchase, 3) : null,
 		];
 	}
 
@@ -182,35 +204,11 @@ class StatsService {
 	 */
 	private function buildReminders(array $maintenanceEntries, float $currentOdometer, \DateTimeImmutable $today, int $reminderMonths): array {
 		$reminders = [];
-		$dueSoonDays = $reminderMonths * self::DAYS_PER_MONTH;
-
 		foreach ($maintenanceEntries as $entry) {
-			$dueDate = $entry->getNextDueDate();
-			$dueOdometer = $entry->getNextDueOdometer();
-			if ($dueDate === null && $dueOdometer === null) {
-				continue;
+			$reminder = $this->computeReminder($entry, $currentOdometer, $today, $reminderMonths);
+			if ($reminder !== null) {
+				$reminders[] = $reminder;
 			}
-
-			$daysRemaining = $dueDate !== null ? (int) $today->diff($dueDate)->format('%r%a') : null;
-			$distanceRemaining = $dueOdometer !== null ? round($dueOdometer - $currentOdometer, 1) : null;
-
-			$overdue = ($daysRemaining !== null && $daysRemaining < 0) || ($distanceRemaining !== null && $distanceRemaining < 0);
-			$dueSoon = !$overdue && (
-				($daysRemaining !== null && $daysRemaining <= $dueSoonDays)
-				|| ($distanceRemaining !== null && $distanceRemaining <= self::DUE_SOON_DISTANCE)
-			);
-			$status = $overdue ? 'overdue' : ($dueSoon ? 'due_soon' : 'upcoming');
-
-			$reminders[] = [
-				'id' => $entry->getId(),
-				'type' => $entry->getType(),
-				'description' => $entry->getDescription(),
-				'nextDueDate' => $dueDate?->format('Y-m-d'),
-				'nextDueOdometer' => $dueOdometer,
-				'daysRemaining' => $daysRemaining,
-				'distanceRemaining' => $distanceRemaining,
-				'status' => $status,
-			];
 		}
 
 		usort($reminders, static function (array $a, array $b) {
@@ -219,5 +217,42 @@ class StatsService {
 		});
 
 		return $reminders;
+	}
+
+	/**
+	 * Reminder status for a single maintenance entry. Public so the reminder
+	 * background job can reuse the exact same logic without needing to
+	 * assemble a whole car's stats.
+	 *
+	 * @return ?array{id: int, type: string, description: ?string, nextDueDate: ?string, nextDueOdometer: ?float, daysRemaining: ?int, distanceRemaining: ?float, status: string} null if the entry has no due date/odometer set
+	 */
+	public function computeReminder(MaintenanceEntry $entry, float $currentOdometer, \DateTimeImmutable $today, int $reminderMonths): ?array {
+		$dueDate = $entry->getNextDueDate();
+		$dueOdometer = $entry->getNextDueOdometer();
+		if ($dueDate === null && $dueOdometer === null) {
+			return null;
+		}
+
+		$dueSoonDays = $reminderMonths * self::DAYS_PER_MONTH;
+		$daysRemaining = $dueDate !== null ? (int) $today->diff($dueDate)->format('%r%a') : null;
+		$distanceRemaining = $dueOdometer !== null ? round($dueOdometer - $currentOdometer, 1) : null;
+
+		$overdue = ($daysRemaining !== null && $daysRemaining < 0) || ($distanceRemaining !== null && $distanceRemaining < 0);
+		$dueSoon = !$overdue && (
+			($daysRemaining !== null && $daysRemaining <= $dueSoonDays)
+			|| ($distanceRemaining !== null && $distanceRemaining <= self::DUE_SOON_DISTANCE)
+		);
+		$status = $overdue ? 'overdue' : ($dueSoon ? 'due_soon' : 'upcoming');
+
+		return [
+			'id' => $entry->getId(),
+			'type' => $entry->getType(),
+			'description' => $entry->getDescription(),
+			'nextDueDate' => $dueDate?->format('Y-m-d'),
+			'nextDueOdometer' => $dueOdometer,
+			'daysRemaining' => $daysRemaining,
+			'distanceRemaining' => $distanceRemaining,
+			'status' => $status,
+		];
 	}
 }

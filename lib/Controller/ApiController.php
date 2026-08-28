@@ -10,6 +10,7 @@ use OCA\CarFuelMaintance\Service\FuelService;
 use OCA\CarFuelMaintance\Service\MaintenanceService;
 use OCA\CarFuelMaintance\Service\PartService;
 use OCA\CarFuelMaintance\Service\SettingsService;
+use OCA\CarFuelMaintance\Service\TripService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\ApiRoute;
@@ -40,6 +41,7 @@ class ApiController extends OCSController {
 		private FuelService $fuelService,
 		private MaintenanceService $maintenanceService,
 		private PartService $partService,
+		private TripService $tripService,
 		private SettingsService $settingsService,
 		private IUserSession $userSession,
 	) {
@@ -95,8 +97,12 @@ class ApiController extends OCSController {
 				['method' => 'DELETE', 'path' => '/api/v1/parts/{id}', 'summary' => 'Delete a part (and its photo, if any)'],
 				['method' => 'POST', 'path' => '/api/v1/parts/{id}/image', 'summary' => 'Upload/replace a part\'s photo (multipart/form-data, field name "image"; jpeg/png/webp/gif, max 10MB)'],
 				['method' => 'GET', 'path' => '/api/v1/parts/{id}/image', 'summary' => 'Download a part\'s photo'],
-				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon"; currencySymbol: shown after every money value app-wide; consumptionFormat: "per100" e.g. L/100km or "perUnit" e.g. km/L, MPG)'],
-				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths, currencySymbol, consumptionFormat) — only fields present in the request are changed'],
+				['method' => 'GET', 'path' => '/api/v1/cars/{carId}/trips', 'summary' => 'List trip log entries for a car'],
+				['method' => 'POST', 'path' => '/api/v1/cars/{carId}/trips', 'summary' => 'Log a trip (tripDate, startOdometer, endOdometer, purpose "business"|"personal"|"other", origin, destination, tolls, otherCosts)'],
+				['method' => 'PUT', 'path' => '/api/v1/trips/{id}', 'summary' => 'Update a trip'],
+				['method' => 'DELETE', 'path' => '/api/v1/trips/{id}', 'summary' => 'Delete a trip'],
+				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon"; currencySymbol: shown after every money value app-wide; consumptionFormat: "per100" e.g. L/100km or "perUnit" e.g. km/L, MPG; notificationsEnabled: whether the background job sends a Nextcloud notification when a reminder becomes due soon/overdue)'],
+				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths, currencySymbol, consumptionFormat, notificationsEnabled) — only fields present in the request are changed'],
 			],
 		]);
 	}
@@ -122,9 +128,16 @@ class ApiController extends OCSController {
 		float $initialOdometer = 0.0,
 		string $odometerUnit = 'km',
 		?string $notes = null,
+		?float $purchasePrice = null,
+		?string $purchaseDate = null,
 	): DataResponse {
+		try {
+			$purchaseDateValue = $purchaseDate !== null ? new \DateTimeImmutable($purchaseDate) : null;
+		} catch (\Exception) {
+			return $this->invalidDate();
+		}
 		return new DataResponse(
-			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $secondaryFuelType, $initialOdometer, $odometerUnit, $notes),
+			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $secondaryFuelType, $initialOdometer, $odometerUnit, $notes, $purchasePrice, $purchaseDateValue),
 			Http::STATUS_CREATED,
 		);
 	}
@@ -160,8 +173,13 @@ class ApiController extends OCSController {
 		?string $notes = null,
 		bool $notesProvided = false,
 		?bool $archived = null,
+		?float $purchasePrice = null,
+		bool $purchasePriceProvided = false,
+		?string $purchaseDate = null,
+		bool $purchaseDateProvided = false,
 	): DataResponse {
 		try {
+			$purchaseDateValue = $purchaseDateProvided && $purchaseDate !== null ? new \DateTimeImmutable($purchaseDate) : null;
 			return new DataResponse($this->carService->update(
 				$id,
 				$this->getUserId(),
@@ -182,9 +200,15 @@ class ApiController extends OCSController {
 				$notes,
 				$notesProvided,
 				$archived,
+				$purchasePrice,
+				$purchasePriceProvided,
+				$purchaseDateValue,
+				$purchaseDateProvided,
 			));
 		} catch (DoesNotExistException) {
 			return $this->notFound();
+		} catch (\Exception) {
+			return $this->invalidDate();
 		}
 	}
 
@@ -517,6 +541,104 @@ class ApiController extends OCSController {
 		}
 	}
 
+	// --- Trips ----------------------------------------------------------------
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'GET', url: '/api/v1/cars/{carId}/trips', requirements: ['carId' => '\d+'])]
+	public function listTrips(int $carId): DataResponse {
+		try {
+			return new DataResponse($this->tripService->findAll($carId, $this->getUserId()));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'POST', url: '/api/v1/cars/{carId}/trips', requirements: ['carId' => '\d+'])]
+	public function createTrip(
+		int $carId,
+		string $tripDate,
+		float $startOdometer,
+		float $endOdometer,
+		string $purpose = 'business',
+		?string $origin = null,
+		?string $destination = null,
+		?float $tolls = null,
+		?float $otherCosts = null,
+		?string $notes = null,
+		int $sortOrder = 0,
+	): DataResponse {
+		try {
+			return new DataResponse(
+				$this->tripService->create($carId, $this->getUserId(), new \DateTimeImmutable($tripDate), $startOdometer, $endOdometer, $purpose, $origin, $destination, $tolls, $otherCosts, $notes, $sortOrder),
+				Http::STATUS_CREATED,
+			);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\Exception) {
+			return $this->invalidDate();
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'PUT', url: '/api/v1/trips/{id}', requirements: ['id' => '\d+'])]
+	public function updateTrip(
+		int $id,
+		?string $tripDate = null,
+		?float $startOdometer = null,
+		?float $endOdometer = null,
+		?string $purpose = null,
+		?string $origin = null,
+		bool $originProvided = false,
+		?string $destination = null,
+		bool $destinationProvided = false,
+		?float $tolls = null,
+		bool $tollsProvided = false,
+		?float $otherCosts = null,
+		bool $otherCostsProvided = false,
+		?string $notes = null,
+		bool $notesProvided = false,
+		?int $sortOrder = null,
+	): DataResponse {
+		try {
+			$date = $tripDate !== null ? new \DateTimeImmutable($tripDate) : null;
+			return new DataResponse($this->tripService->update(
+				$id,
+				$this->getUserId(),
+				$date,
+				$startOdometer,
+				$endOdometer,
+				$purpose,
+				$origin,
+				$originProvided,
+				$destination,
+				$destinationProvided,
+				$tolls,
+				$tollsProvided,
+				$otherCosts,
+				$otherCostsProvided,
+				$notes,
+				$notesProvided,
+				$sortOrder,
+			));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\Exception) {
+			return $this->invalidDate();
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'DELETE', url: '/api/v1/trips/{id}', requirements: ['id' => '\d+'])]
+	public function deleteTrip(int $id): DataResponse {
+		try {
+			$this->tripService->delete($id, $this->getUserId());
+			return new DataResponse([]);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		}
+	}
+
 	// --- Settings -----------------------------------------------------------
 
 	#[NoAdminRequired]
@@ -527,12 +649,13 @@ class ApiController extends OCSController {
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
+			'notificationsEnabled' => $this->settingsService->getNotificationsEnabled($userId),
 		]);
 	}
 
 	#[NoAdminRequired]
 	#[ApiRoute(verb: 'PUT', url: '/api/v1/settings')]
-	public function updateSettings(?int $reminderMonths = null, ?string $currencySymbol = null, ?string $consumptionFormat = null): DataResponse {
+	public function updateSettings(?int $reminderMonths = null, ?string $currencySymbol = null, ?string $consumptionFormat = null, ?bool $notificationsEnabled = null): DataResponse {
 		$userId = $this->getUserId();
 		if ($reminderMonths !== null) {
 			$this->settingsService->setReminderMonths($userId, $reminderMonths);
@@ -543,10 +666,14 @@ class ApiController extends OCSController {
 		if ($consumptionFormat !== null) {
 			$this->settingsService->setConsumptionFormat($userId, $consumptionFormat);
 		}
+		if ($notificationsEnabled !== null) {
+			$this->settingsService->setNotificationsEnabled($userId, $notificationsEnabled);
+		}
 		return new DataResponse([
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
+			'notificationsEnabled' => $this->settingsService->getNotificationsEnabled($userId),
 		]);
 	}
 }

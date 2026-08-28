@@ -78,11 +78,17 @@ function carDisplayName(car) {
 						<h4>{{ t('carfuelmaintance', 'Maintenance entries') }}</h4>
 						<p>{{ t('carfuelmaintance', 'Log services, repairs and inspections. Set a "next due" date or odometer reading to get a reminder on the Overview tab as it approaches or is overdue.') }}</p>
 
+						<h4>{{ t('carfuelmaintance', 'Trips') }}</h4>
+						<p>{{ t('carfuelmaintance', 'Log individual trips with a purpose (business, personal, other), start/end odometer, tolls and other costs. Each trip\'s fuel cost is estimated from the car\'s current consumption and latest fuel price, and added to tolls/other costs for a total.') }}</p>
+
 						<h4>{{ t('carfuelmaintance', 'Overview') }}</h4>
-						<p>{{ t('carfuelmaintance', 'Shows total distance, fuel and maintenance spend, average consumption, and any upcoming or overdue reminders for the selected car.') }}</p>
+						<p>{{ t('carfuelmaintance', 'Shows total distance, fuel and maintenance spend, average consumption, total cost of ownership, and any upcoming or overdue reminders for the selected car.') }}</p>
 
 						<h4>{{ t('carfuelmaintance', 'Parts / equipment') }}</h4>
 						<p>{{ t('carfuelmaintance', 'A stock of spare parts and equipment, new or used, with a photo, storage location and reference number. Link a part to a specific car, or leave it unset for general stock shared across all your cars.') }}</p>
+
+						<h4>{{ t('carfuelmaintance', 'Notifications') }}</h4>
+						<p>{{ t('carfuelmaintance', 'When a maintenance reminder becomes due soon or overdue, you get a Nextcloud notification (checked periodically in the background) — turn this off in Settings if you\'d rather just check the Overview tab yourself.') }}</p>
 					</HelpButton>
 					<button type="button" class="icon-btn" :aria-label="t('carfuelmaintance', 'Settings')" :title="t('carfuelmaintance', 'Settings')" @click="router.push({ name: 'settings' })">
 						<Cog :size="18" />

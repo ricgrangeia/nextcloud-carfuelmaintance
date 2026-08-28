@@ -32,6 +32,11 @@ export default {
 	},
 	partImageUrl: (id) => url(`/api/parts/${id}/image`),
 
+	listTrips: (carId) => data(axios.get(url(`/api/cars/${carId}/trips`))),
+	createTrip: (carId, payload) => data(axios.post(url(`/api/cars/${carId}/trips`), payload)),
+	updateTrip: (id, payload) => data(axios.put(url(`/api/trips/${id}`), payload)),
+	deleteTrip: (id) => data(axios.delete(url(`/api/trips/${id}`))),
+
 	getSettings: () => data(axios.get(url('/api/settings'))),
 	updateSettings: (payload) => data(axios.put(url('/api/settings'), payload)),
 }

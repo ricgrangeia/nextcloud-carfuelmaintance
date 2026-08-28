@@ -6,6 +6,7 @@ import api from '../api/client.js'
 const reminderMonths = ref(1)
 const currencySymbol = ref('€')
 const consumptionFormat = ref('per100')
+const notificationsEnabled = ref(true)
 const loaded = ref(false)
 const saving = ref(false)
 const saved = ref(false)
@@ -19,6 +20,7 @@ onMounted(async () => {
 	reminderMonths.value = settings.reminderMonths
 	currencySymbol.value = settings.currencySymbol
 	consumptionFormat.value = settings.consumptionFormat
+	notificationsEnabled.value = settings.notificationsEnabled
 	loaded.value = true
 })
 
@@ -30,10 +32,12 @@ async function save() {
 			reminderMonths: Number(reminderMonths.value),
 			currencySymbol: currencySymbol.value,
 			consumptionFormat: consumptionFormat.value,
+			notificationsEnabled: notificationsEnabled.value,
 		})
 		reminderMonths.value = settings.reminderMonths
 		currencySymbol.value = settings.currencySymbol
 		consumptionFormat.value = settings.consumptionFormat
+		notificationsEnabled.value = settings.notificationsEnabled
 		saved.value = true
 	} catch (e) {
 		window.alert(t('carfuelmaintance', 'Could not save settings: {message}', { message: errorMessage(e) }))
@@ -71,6 +75,10 @@ async function save() {
 			<p class="hint">
 				{{ t('carfuelmaintance', 'Controls how consumption is shown throughout the app — the Overview stat cards, charts and the "cost at current price" figure.') }}
 			</p>
+			<label class="dialog-field checkbox-field">
+				<input v-model="notificationsEnabled" type="checkbox">
+				<span class="dialog-label">{{ t('carfuelmaintance', 'Send a Nextcloud notification when a reminder becomes due soon or overdue') }}</span>
+			</label>
 			<div class="actions-row">
 				<button type="submit" class="save-btn" :disabled="saving">
 					{{ saving ? t('carfuelmaintance', 'Saving…') : t('carfuelmaintance', 'Save') }}
@@ -104,6 +112,16 @@ async function save() {
 .dialog-label {
 	font-weight: 600;
 	color: var(--color-text-maxcontrast);
+}
+
+.checkbox-field {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.checkbox-field input {
+	width: auto;
 }
 
 .dialog-field input,

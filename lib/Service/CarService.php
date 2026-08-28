@@ -8,6 +8,7 @@ use OCA\CarFuelMaintance\Db\Car;
 use OCA\CarFuelMaintance\Db\CarMapper;
 use OCA\CarFuelMaintance\Db\FuelEntryMapper;
 use OCA\CarFuelMaintance\Db\MaintenanceEntryMapper;
+use OCA\CarFuelMaintance\Db\TripMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 
@@ -16,6 +17,7 @@ class CarService {
 		private CarMapper $carMapper,
 		private FuelEntryMapper $fuelEntryMapper,
 		private MaintenanceEntryMapper $maintenanceEntryMapper,
+		private TripMapper $tripMapper,
 		private PartService $partService,
 	) {
 	}
@@ -45,6 +47,8 @@ class CarService {
 		float $initialOdometer = 0.0,
 		string $odometerUnit = 'km',
 		?string $notes = null,
+		?float $purchasePrice = null,
+		?\DateTimeImmutable $purchaseDate = null,
 	): Car {
 		$car = new Car();
 		$car->setUserId($userId);
@@ -58,6 +62,8 @@ class CarService {
 		$car->setInitialOdometer($initialOdometer);
 		$car->setOdometerUnit($odometerUnit !== '' ? $odometerUnit : 'km');
 		$car->setNotes($notes);
+		$car->setPurchasePrice($purchasePrice);
+		$car->setPurchaseDate($purchaseDate);
 		$car->setCreatedAt(new \DateTimeImmutable());
 		return $this->carMapper->insert($car);
 	}
@@ -86,6 +92,10 @@ class CarService {
 		?string $notes = null,
 		bool $notesProvided = false,
 		?bool $archived = null,
+		?float $purchasePrice = null,
+		bool $purchasePriceProvided = false,
+		?\DateTimeImmutable $purchaseDate = null,
+		bool $purchaseDateProvided = false,
 	): Car {
 		$car = $this->find($id, $userId);
 		if ($name !== null) {
@@ -121,6 +131,12 @@ class CarService {
 		if ($archived !== null) {
 			$car->setArchived($archived);
 		}
+		if ($purchasePriceProvided) {
+			$car->setPurchasePrice($purchasePrice);
+		}
+		if ($purchaseDateProvided) {
+			$car->setPurchaseDate($purchaseDate);
+		}
 		return $this->carMapper->update($car);
 	}
 
@@ -132,6 +148,7 @@ class CarService {
 		$car = $this->find($id, $userId);
 		$this->fuelEntryMapper->deleteAllForCar($id);
 		$this->maintenanceEntryMapper->deleteAllForCar($id);
+		$this->tripMapper->deleteAllForCar($id);
 		$this->partService->deleteAllForCar($id, $userId);
 		$this->carMapper->delete($car);
 	}

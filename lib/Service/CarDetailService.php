@@ -6,15 +6,17 @@ namespace OCA\CarFuelMaintance\Service;
 
 use OCA\CarFuelMaintance\Db\FuelEntryMapper;
 use OCA\CarFuelMaintance\Db\MaintenanceEntryMapper;
+use OCA\CarFuelMaintance\Db\TripMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 
-/** Assembles a car plus its fuel/maintenance entries and computed stats. */
+/** Assembles a car plus its fuel/maintenance/trip entries and computed stats. */
 class CarDetailService {
 	public function __construct(
 		private CarService $carService,
 		private FuelEntryMapper $fuelEntryMapper,
 		private MaintenanceEntryMapper $maintenanceEntryMapper,
+		private TripMapper $tripMapper,
 		private StatsService $statsService,
 		private SettingsService $settingsService,
 	) {
@@ -28,6 +30,7 @@ class CarDetailService {
 		$car = $this->carService->find($carId, $userId);
 		$fuelEntries = $this->fuelEntryMapper->findAllForCar($carId);
 		$maintenanceEntries = $this->maintenanceEntryMapper->findAllForCar($carId);
+		$trips = $this->tripMapper->findAllForCar($carId);
 		$reminderMonths = $this->settingsService->getReminderMonths($userId);
 		$currencySymbol = $this->settingsService->getCurrencySymbol($userId);
 		$consumptionFormat = $this->settingsService->getConsumptionFormat($userId);
@@ -37,6 +40,7 @@ class CarDetailService {
 			'car' => $car,
 			'fuelEntries' => $fuelEntries,
 			'maintenanceEntries' => $maintenanceEntries,
+			'trips' => $trips,
 			'stats' => $stats,
 		];
 	}

@@ -48,8 +48,28 @@
 					"initialOdometer": { "type": "number", "format": "float", "default": 0, "description": "Odometer reading when tracking started; distance and stats are computed from this baseline" },
 					"odometerUnit": { "type": "string", "enum": ["km", "mi"], "default": "km" },
 					"notes": { "type": "string", "nullable": true },
+					"purchasePrice": { "type": "number", "format": "float", "nullable": true, "description": "Used together with fuel/maintenance costs to compute total cost of ownership" },
+					"purchaseDate": { "type": "string", "format": "date", "nullable": true, "description": "Falls back to the car's createdAt for ownership-duration stats if not set" },
 					"createdAt": { "type": "string", "format": "date-time", "nullable": true },
 					"archived": { "type": "boolean", "default": false, "description": "Archived cars are hidden from the default list but keep all their data" }
+				}
+			},
+			"Trip": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "integer" },
+					"carId": { "type": "integer" },
+					"tripDate": { "type": "string", "format": "date" },
+					"purpose": { "type": "string", "enum": ["business", "personal", "other"], "default": "business" },
+					"origin": { "type": "string", "nullable": true },
+					"destination": { "type": "string", "nullable": true },
+					"startOdometer": { "type": "number", "format": "float" },
+					"endOdometer": { "type": "number", "format": "float" },
+					"distance": { "type": "number", "format": "float", "description": "endOdometer - startOdometer, computed" },
+					"tolls": { "type": "number", "format": "float", "nullable": true },
+					"otherCosts": { "type": "number", "format": "float", "nullable": true },
+					"notes": { "type": "string", "nullable": true },
+					"sortOrder": { "type": "integer" }
 				}
 			},
 			"FuelEntry": {
@@ -147,16 +167,29 @@
 					"reminderMonths": { "type": "integer", "description": "The user's configured reminder threshold, echoed back for convenience" },
 					"consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"], "description": "The user's configured consumption display format, echoed back for convenience" },
 					"currencySymbol": { "type": "string", "description": "The user's configured currency symbol, shown after every money value here" },
-					"reminders": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } }
+					"reminders": { "type": "array", "items": { "$ref": "#/components/schemas/Reminder" } },
+					"tco": {
+						"type": "object",
+						"description": "Total cost of ownership, only meaningful once purchasePrice is set on the car",
+						"properties": {
+							"purchasePrice": { "type": "number", "format": "float", "nullable": true },
+							"purchaseDate": { "type": "string", "format": "date", "nullable": true },
+							"totalCostOfOwnership": { "type": "number", "format": "float", "description": "purchasePrice + every fuel/maintenance cost logged" },
+							"ownershipDays": { "type": "integer", "nullable": true, "description": "Days since purchaseDate (or the car's createdAt if purchaseDate isn't set); null if neither is available" },
+							"costPerYear": { "type": "number", "format": "float", "nullable": true },
+							"costPerDistance": { "type": "number", "format": "float", "nullable": true, "description": "totalCostOfOwnership / (currentOdometer - initialOdometer)" }
+						}
+					}
 				}
 			},
 			"CarDetail": {
 				"type": "object",
-				"description": "A car plus its full fuel/maintenance history and computed stats. Returned by GET /api/v1/cars/{id}.",
+				"description": "A car plus its full fuel/maintenance/trip history and computed stats. Returned by GET /api/v1/cars/{id}.",
 				"properties": {
 					"car": { "$ref": "#/components/schemas/Car" },
 					"fuelEntries": { "type": "array", "items": { "$ref": "#/components/schemas/FuelEntry" } },
 					"maintenanceEntries": { "type": "array", "items": { "$ref": "#/components/schemas/MaintenanceEntry" } },
+					"trips": { "type": "array", "items": { "$ref": "#/components/schemas/Trip" } },
 					"stats": { "$ref": "#/components/schemas/CarStats" }
 				}
 			},
@@ -183,7 +216,8 @@
 				"properties": {
 					"reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "default": 1, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" },
 					"currencySymbol": { "type": "string", "maxLength": 8, "default": "€", "description": "Shown after every money value app-wide, e.g. \"60.00 €\"" },
-					"consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"], "default": "per100", "description": "\"per100\" e.g. L/100km, gal/100mi. \"perUnit\" e.g. km/L, mi/gal (MPG). Controls how consumption is displayed app-wide." }
+					"consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"], "default": "per100", "description": "\"per100\" e.g. L/100km, gal/100mi. \"perUnit\" e.g. km/L, mi/gal (MPG). Controls how consumption is displayed app-wide." },
+					"notificationsEnabled": { "type": "boolean", "default": true, "description": "Whether the background job sends a Nextcloud notification when a reminder becomes due soon or overdue" }
 				}
 			}
 		}
@@ -210,7 +244,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
 				"requestBody": {
 					"required": true,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "model": { "type": "string" }, "plate": { "type": "string" }, "year": { "type": "integer" }, "fuelType": { "type": "string", "default": "gasoline" }, "secondaryFuelType": { "type": "string", "description": "Set for bifuel cars, e.g. \"lpg\" on a gasoline car" }, "initialOdometer": { "type": "number", "default": 0 }, "odometerUnit": { "type": "string", "default": "km" }, "notes": { "type": "string" } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "model": { "type": "string" }, "plate": { "type": "string" }, "year": { "type": "integer" }, "fuelType": { "type": "string", "default": "gasoline" }, "secondaryFuelType": { "type": "string", "description": "Set for bifuel cars, e.g. \"lpg\" on a gasoline car" }, "initialOdometer": { "type": "number", "default": 0 }, "odometerUnit": { "type": "string", "default": "km" }, "notes": { "type": "string" }, "purchasePrice": { "type": "number" }, "purchaseDate": { "type": "string", "format": "date" } } } } }
 				},
 				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Car" } } } } }
 			}
@@ -228,7 +262,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
 				"requestBody": {
 					"required": false,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "brandProvided": { "type": "boolean" }, "model": { "type": "string" }, "modelProvided": { "type": "boolean" }, "plate": { "type": "string" }, "plateProvided": { "type": "boolean" }, "year": { "type": "integer" }, "yearProvided": { "type": "boolean" }, "fuelType": { "type": "string" }, "secondaryFuelType": { "type": "string" }, "secondaryFuelTypeProvided": { "type": "boolean" }, "initialOdometer": { "type": "number" }, "odometerUnit": { "type": "string" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" }, "archived": { "type": "boolean", "description": "true to archive, false to restore" } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "brand": { "type": "string" }, "brandProvided": { "type": "boolean" }, "model": { "type": "string" }, "modelProvided": { "type": "boolean" }, "plate": { "type": "string" }, "plateProvided": { "type": "boolean" }, "year": { "type": "integer" }, "yearProvided": { "type": "boolean" }, "fuelType": { "type": "string" }, "secondaryFuelType": { "type": "string" }, "secondaryFuelTypeProvided": { "type": "boolean" }, "initialOdometer": { "type": "number" }, "odometerUnit": { "type": "string" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" }, "archived": { "type": "boolean", "description": "true to archive, false to restore" }, "purchasePrice": { "type": "number" }, "purchasePriceProvided": { "type": "boolean" }, "purchaseDate": { "type": "string", "format": "date" }, "purchaseDateProvided": { "type": "boolean" } } } } }
 				},
 				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Car" } } } }, "404": { "description": "Not found or not owned by the authenticated user" } }
 			},
@@ -365,6 +399,42 @@
 				"responses": { "200": { "description": "The image bytes, with the original Content-Type" }, "404": { "description": "Not found, not owned by the authenticated user, or no image set" } }
 			}
 		},
+		"/api/v1/cars/{carId}/trips": {
+			"get": {
+				"operationId": "listTrips",
+				"summary": "List trip log entries for a car, ordered by date",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Trip" } } } } }, "404": { "description": "Car not found or not owned by the authenticated user" } }
+			},
+			"post": {
+				"operationId": "createTrip",
+				"summary": "Log a trip. Distance is computed as endOdometer - startOdometer.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": true,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["tripDate", "startOdometer", "endOdometer"], "properties": { "tripDate": { "type": "string", "format": "date" }, "startOdometer": { "type": "number" }, "endOdometer": { "type": "number" }, "purpose": { "type": "string", "enum": ["business", "personal", "other"], "default": "business" }, "origin": { "type": "string" }, "destination": { "type": "string" }, "tolls": { "type": "number" }, "otherCosts": { "type": "number" }, "notes": { "type": "string" } } } } }
+				},
+				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Trip" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Car not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/trips/{id}": {
+			"put": {
+				"operationId": "updateTrip",
+				"summary": "Update a trip. Only fields present in the request body are changed; pass the matching \"...Provided=true\" flag to set a nullable field to null.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": false,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "tripDate": { "type": "string", "format": "date" }, "startOdometer": { "type": "number" }, "endOdometer": { "type": "number" }, "purpose": { "type": "string", "enum": ["business", "personal", "other"] }, "origin": { "type": "string" }, "originProvided": { "type": "boolean" }, "destination": { "type": "string" }, "destinationProvided": { "type": "boolean" }, "tolls": { "type": "number" }, "tollsProvided": { "type": "boolean" }, "otherCosts": { "type": "number" }, "otherCostsProvided": { "type": "boolean" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Trip" } } } }, "400": { "description": "Invalid date" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"delete": {
+				"operationId": "deleteTrip",
+				"summary": "Delete a trip",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		},
 		"/api/v1/settings": {
 			"get": {
 				"operationId": "getSettings",
@@ -378,7 +448,7 @@
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
 				"requestBody": {
 					"required": false,
-					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }, "currencySymbol": { "type": "string", "maxLength": 8 }, "consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"] } } } } }
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "reminderMonths": { "type": "integer", "minimum": 1, "maximum": 24, "description": "How many months ahead of a maintenance entry's next-due date counts as \"due soon\"" }, "currencySymbol": { "type": "string", "maxLength": 8 }, "consumptionFormat": { "type": "string", "enum": ["per100", "perUnit"] }, "notificationsEnabled": { "type": "boolean" } } } } }
 				},
 				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Settings" } } } } }
 			}

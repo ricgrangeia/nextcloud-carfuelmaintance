@@ -117,9 +117,11 @@ class MaintenanceService {
 		}
 		if ($nextDueDateProvided) {
 			$entry->setNextDueDate($nextDueDate);
+			$entry->setNotifiedStatus(null);
 		}
 		if ($nextDueOdometerProvided) {
 			$entry->setNextDueOdometer($nextDueOdometer);
+			$entry->setNotifiedStatus(null);
 		}
 		if ($notesProvided) {
 			$entry->setNotes($notes);
@@ -135,5 +137,11 @@ class MaintenanceService {
 	public function delete(int $id, string $userId): void {
 		$entry = $this->assertEntryOwned($id, $userId);
 		$this->maintenanceEntryMapper->delete($entry);
+	}
+
+	/** Records that a reminder notification was sent for this entry's current due date/odometer, to avoid re-sending it every time the background job runs. */
+	public function markNotified(MaintenanceEntry $entry, string $status): void {
+		$entry->setNotifiedStatus($status);
+		$this->maintenanceEntryMapper->update($entry);
 	}
 }

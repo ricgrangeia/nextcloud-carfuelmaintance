@@ -160,6 +160,41 @@ class StatsServiceTest extends TestCase {
 		self::assertNull($gasoline['costPerDistanceAtLastPrice']);
 	}
 
+	public function testTcoCombinesPurchasePriceWithLoggedCosts(): void {
+		$car = $this->car(1000);
+		$car->setPurchasePrice(10000.0);
+		$car->setPurchaseDate(new \DateTimeImmutable('2025-01-15'));
+
+		$entries = [$this->fuel(1000, 40.0, true, 60.0), $this->fuel(1500, 40.0, true, 60.0)];
+
+		$result = $this->stats->computeCarStats($car, $entries, [], new \DateTimeImmutable('2026-01-15'));
+
+		self::assertSame(10000.0, $result['tco']['purchasePrice']);
+		self::assertSame(10120.0, $result['tco']['totalCostOfOwnership']);
+		self::assertSame(365, $result['tco']['ownershipDays']);
+		// 365 days is very slightly short of a 365.25-day year, so cost/year
+		// is a hair above the raw total (10120 * 365.25/365 ≈ 10126.94).
+		self::assertEqualsWithDelta(10126.94, $result['tco']['costPerYear'], 0.1);
+		// distance since purchase: currentOdometer(1500) - initialOdometer(1000) = 500.
+		self::assertEqualsWithDelta(20.24, $result['tco']['costPerDistance'], 0.01);
+	}
+
+	public function testTcoFallsBackToCreatedAtWhenNoPurchaseDate(): void {
+		$car = $this->car(0);
+		$car->setCreatedAt(new \DateTimeImmutable('2026-01-01'));
+
+		$result = $this->stats->computeCarStats($car, [], [], new \DateTimeImmutable('2026-01-15'));
+
+		self::assertSame(14, $result['tco']['ownershipDays']);
+	}
+
+	public function testTcoIsNullWhenNoPurchaseDateOrCreatedAt(): void {
+		$result = $this->stats->computeCarStats($this->car(0), [], [], new \DateTimeImmutable('2026-01-15'));
+
+		self::assertNull($result['tco']['ownershipDays']);
+		self::assertNull($result['tco']['costPerYear']);
+	}
+
 	public function testTotalDistanceIgnoresUnsetInitialOdometer(): void {
 		// A car left at the default initialOdometer=0 with high-mileage fuel
 		// entries must report the distance covered *between fill-ups*, not
@@ -207,6 +242,28 @@ class StatsServiceTest extends TestCase {
 
 		// entryCount orders the groups, most-logged fuel type first.
 		self::assertSame('lpg', $result['consumptionByFuelType'][0]['fuelType']);
+	}
+
+	public function testComputeReminderReturnsNullWithoutDueDateOrOdometer(): void {
+		$entry = new MaintenanceEntry();
+		$entry->setEntryDate(new \DateTimeImmutable('2026-01-01'));
+
+		self::assertNull($this->stats->computeReminder($entry, 1000.0, new \DateTimeImmutable('2026-01-15'), 1));
+	}
+
+	public function testComputeReminderUsedDirectlyByTheReminderBackgroundJob(): void {
+		// StatsService::computeReminder is public specifically so
+		// CheckRemindersJob can reuse it per-entry without assembling a
+		// whole car's stats — this locks that contract in place.
+		$entry = new MaintenanceEntry();
+		$entry->setEntryDate(new \DateTimeImmutable('2026-01-01'));
+		$entry->setType('iuc');
+		$entry->setNextDueDate(new \DateTimeImmutable('2025-12-01'));
+
+		$reminder = $this->stats->computeReminder($entry, 1000.0, new \DateTimeImmutable('2026-01-15'), 1);
+
+		self::assertSame('overdue', $reminder['status']);
+		self::assertSame('iuc', $reminder['type']);
 	}
 
 	public function testReminderStatusOverdueDueSoonAndUpcoming(): void {

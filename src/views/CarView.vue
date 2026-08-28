@@ -70,6 +70,10 @@ async function saveSettings() {
 			odometerUnit: settingsForm.value.odometerUnit,
 			notes: settingsForm.value.notes,
 			notesProvided: true,
+			purchasePrice: settingsForm.value.purchasePrice === '' ? null : Number(settingsForm.value.purchasePrice),
+			purchasePriceProvided: true,
+			purchaseDate: settingsForm.value.purchaseDate || null,
+			purchaseDateProvided: true,
 		})
 	} catch (e) {
 		window.alert(t('carfuelmaintance', 'Could not save the car: {message}', { message: errorMessage(e) }))
@@ -116,6 +120,7 @@ const settingsDialogButtons = computed(() => [
 			<router-link :to="{ name: 'overview', params: { id } }">{{ t('carfuelmaintance', 'Overview') }}</router-link>
 			<router-link :to="{ name: 'fuel', params: { id } }">{{ t('carfuelmaintance', 'Fuel') }}</router-link>
 			<router-link :to="{ name: 'maintenance', params: { id } }">{{ t('carfuelmaintance', 'Maintenance') }}</router-link>
+				<router-link :to="{ name: 'trips', params: { id } }">{{ t('carfuelmaintance', 'Trips') }}</router-link>
 			<button type="button" class="icon-btn" :aria-label="t('carfuelmaintance', 'Car settings')" :title="t('carfuelmaintance', 'Car settings')" @click="openSettings(); settingsOpen = true">
 				<Cog :size="18" />
 			</button>
@@ -180,6 +185,17 @@ const settingsDialogButtons = computed(() => [
 					<span class="dialog-label">{{ t('carfuelmaintance', 'Starting odometer reading') }}</span>
 					<input v-model="settingsForm.initialOdometer" type="number" step="0.1" min="0">
 				</label>
+				<div class="dialog-row">
+					<label class="dialog-field">
+						<span class="dialog-label">{{ t('carfuelmaintance', 'Purchase price') }}</span>
+						<input v-model="settingsForm.purchasePrice" type="number" step="0.01" min="0">
+					</label>
+					<label class="dialog-field">
+						<span class="dialog-label">{{ t('carfuelmaintance', 'Purchase date') }}</span>
+						<input v-model="settingsForm.purchaseDate" type="date">
+					</label>
+				</div>
+				<p class="hint">{{ t('carfuelmaintance', 'Optional — used to compute total cost of ownership on the Overview tab.') }}</p>
 				<label class="dialog-field">
 					<span class="dialog-label">{{ t('carfuelmaintance', 'Notes') }}</span>
 					<textarea v-model="settingsForm.notes" rows="2"></textarea>
@@ -297,6 +313,12 @@ const settingsDialogButtons = computed(() => [
 .dialog-field textarea:focus {
 	border-color: var(--color-primary-element);
 	outline: none;
+}
+
+.hint {
+	margin: -8px 0 0;
+	font-size: 12px;
+	color: var(--color-text-maxcontrast);
 }
 
 .dialog-actions-row {

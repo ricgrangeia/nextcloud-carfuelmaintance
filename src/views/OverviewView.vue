@@ -125,6 +125,33 @@ function formatDays(remaining) {
 			</div>
 		</div>
 
+		<div v-if="detail.stats.tco.purchasePrice !== null" class="tco">
+			<h3>{{ t('carfuelmaintance', 'Total cost of ownership') }}</h3>
+			<div class="stats-grid">
+				<div class="stat-card">
+					<span class="stat-label">{{ t('carfuelmaintance', 'Purchase price') }}</span>
+					<span class="stat-value">{{ formatMoney(detail.stats.tco.purchasePrice, detail.stats.currencySymbol) }}</span>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">{{ t('carfuelmaintance', 'Total cost of ownership') }}</span>
+					<span class="stat-value">{{ formatMoney(detail.stats.tco.totalCostOfOwnership, detail.stats.currencySymbol) }}</span>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">{{ t('carfuelmaintance', 'Cost per year') }}</span>
+					<span class="stat-value">{{ detail.stats.tco.costPerYear !== null ? formatMoney(detail.stats.tco.costPerYear, detail.stats.currencySymbol) : '—' }}</span>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">{{ t('carfuelmaintance', 'Cost per distance (TCO)') }}</span>
+					<span class="stat-value">
+						<template v-if="detail.stats.tco.costPerDistance !== null">
+							{{ formatMoney(detail.stats.tco.costPerDistance, detail.stats.currencySymbol) }} / {{ detail.stats.odometerUnit }}
+						</template>
+						<template v-else>—</template>
+					</span>
+				</div>
+			</div>
+		</div>
+
 		<div class="reminders">
 			<div class="reminders-header">
 				<h3>{{ t('carfuelmaintance', 'Maintenance reminders') }}</h3>
@@ -228,6 +255,14 @@ function formatDays(remaining) {
 .stat-value {
 	font-size: 20px;
 	font-weight: 600;
+}
+
+.tco {
+	margin-bottom: 32px;
+}
+
+.tco h3 {
+	margin: 0 0 12px;
 }
 
 .reminders h3 {

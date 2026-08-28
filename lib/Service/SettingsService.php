@@ -16,6 +16,8 @@ class SettingsService {
 	private const CONSUMPTION_FORMAT_KEY = 'consumptionFormat';
 	private const DEFAULT_CONSUMPTION_FORMAT = 'per100';
 	private const VALID_CONSUMPTION_FORMATS = ['per100', 'perUnit'];
+	private const NOTIFICATIONS_ENABLED_KEY = 'notificationsEnabled';
+	private const DEFAULT_NOTIFICATIONS_ENABLED = true;
 
 	public function __construct(
 		private IConfig $config,
@@ -63,5 +65,15 @@ class SettingsService {
 		}
 		$this->config->setUserValue($userId, Application::APP_ID, self::CONSUMPTION_FORMAT_KEY, $format);
 		return $format;
+	}
+
+	public function getNotificationsEnabled(string $userId): bool {
+		$default = self::DEFAULT_NOTIFICATIONS_ENABLED ? '1' : '0';
+		return $this->config->getUserValue($userId, Application::APP_ID, self::NOTIFICATIONS_ENABLED_KEY, $default) === '1';
+	}
+
+	public function setNotificationsEnabled(string $userId, bool $enabled): bool {
+		$this->config->setUserValue($userId, Application::APP_ID, self::NOTIFICATIONS_ENABLED_KEY, $enabled ? '1' : '0');
+		return $enabled;
 	}
 }

@@ -30,6 +30,10 @@ use OCP\DB\Types;
  * @method void setOdometerUnit(string $odometerUnit)
  * @method ?string getNotes()
  * @method void setNotes(?string $notes)
+ * @method ?float getPurchasePrice()
+ * @method void setPurchasePrice(?float $purchasePrice)
+ * @method ?\DateTimeImmutable getPurchaseDate()
+ * @method void setPurchaseDate(?\DateTimeImmutable $purchaseDate)
  * @method ?\DateTimeImmutable getCreatedAt()
  * @method void setCreatedAt(?\DateTimeImmutable $createdAt)
  * @method bool getArchived()
@@ -47,6 +51,8 @@ class Car extends Entity implements \JsonSerializable {
 	protected float $initialOdometer = 0.0;
 	protected string $odometerUnit = 'km';
 	protected ?string $notes = null;
+	protected ?float $purchasePrice = null;
+	protected ?\DateTimeImmutable $purchaseDate = null;
 	protected ?\DateTimeImmutable $createdAt = null;
 	protected bool $archived = false;
 
@@ -62,6 +68,8 @@ class Car extends Entity implements \JsonSerializable {
 		$this->addType('initialOdometer', Types::FLOAT);
 		$this->addType('odometerUnit', Types::STRING);
 		$this->addType('notes', Types::TEXT);
+		$this->addType('purchasePrice', Types::FLOAT);
+		$this->addType('purchaseDate', Types::DATE_IMMUTABLE);
 		$this->addType('createdAt', Types::DATETIME_IMMUTABLE);
 		$this->addType('archived', Types::BOOLEAN);
 	}
@@ -80,6 +88,8 @@ class Car extends Entity implements \JsonSerializable {
 			'initialOdometer' => $this->initialOdometer,
 			'odometerUnit' => $this->odometerUnit,
 			'notes' => $this->notes,
+			'purchasePrice' => $this->purchasePrice,
+			'purchaseDate' => $this->purchaseDate?->format('Y-m-d'),
 			'createdAt' => $this->createdAt?->format(\DateTimeInterface::ATOM),
 			'archived' => $this->archived,
 		];

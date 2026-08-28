@@ -4,11 +4,14 @@
 	<id>carfuelmaintance</id>
 	<name>Car Fuel &amp; Maintenance</name>
 	<summary>Track fuel fill-ups and maintenance history for your cars</summary>
-	<description><![CDATA[Log fuel fill-ups and maintenance work for as many cars as you own.
-Fill-ups compute fuel consumption and cost per distance automatically; maintenance
-entries support due-date and due-mileage reminders. Includes a token-friendly API
-so a script or an AI assistant can log entries for you.]]></description>
-	<version>1.4.0</version>
+	<description><![CDATA[Log fuel fill-ups, maintenance work, trips and a spare-parts inventory for as
+many cars as you own, including bifuel vehicles. Fill-ups compute fuel consumption
+and cost automatically per fuel type; maintenance entries support due-date and
+due-mileage reminders, backed by real Nextcloud notifications. Track total cost of
+ownership and per-trip costs (including tolls), and manage a photographed parts
+stock linked to your cars. Includes a token-friendly API so a script or an AI
+assistant can log entries for you.]]></description>
+	<version>2.0.0</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="ricardo@grangeia.pt">Ricardo</author>
 	<namespace>CarFuelMaintance</namespace>

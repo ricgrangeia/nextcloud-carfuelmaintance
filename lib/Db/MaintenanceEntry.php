@@ -30,6 +30,8 @@ use OCP\DB\Types;
  * @method void setNotes(?string $notes)
  * @method int getSortOrder()
  * @method void setSortOrder(int $sortOrder)
+ * @method ?string getNotifiedStatus()
+ * @method void setNotifiedStatus(?string $notifiedStatus)
  */
 class MaintenanceEntry extends Entity implements \JsonSerializable {
 	protected int $carId = 0;
@@ -43,6 +45,8 @@ class MaintenanceEntry extends Entity implements \JsonSerializable {
 	protected ?float $nextDueOdometer = null;
 	protected ?string $notes = null;
 	protected int $sortOrder = 0;
+	/** Last reminder status ('due_soon'|'overdue') a notification was already sent for; reset to null whenever the due date/odometer changes. */
+	protected ?string $notifiedStatus = null;
 
 	public function __construct() {
 		$this->addType('carId', Types::INTEGER);
@@ -56,6 +60,7 @@ class MaintenanceEntry extends Entity implements \JsonSerializable {
 		$this->addType('nextDueOdometer', Types::FLOAT);
 		$this->addType('notes', Types::TEXT);
 		$this->addType('sortOrder', Types::INTEGER);
+		$this->addType('notifiedStatus', Types::STRING);
 	}
 
 	public function jsonSerialize(): array {

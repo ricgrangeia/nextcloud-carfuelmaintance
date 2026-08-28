@@ -49,9 +49,16 @@ class CarController extends Controller {
 		float $initialOdometer = 0.0,
 		string $odometerUnit = 'km',
 		?string $notes = null,
+		?float $purchasePrice = null,
+		?string $purchaseDate = null,
 	): DataResponse {
+		try {
+			$purchaseDateValue = $purchaseDate !== null ? new \DateTimeImmutable($purchaseDate) : null;
+		} catch (\Exception) {
+			return new DataResponse(['message' => 'Invalid date'], Http::STATUS_BAD_REQUEST);
+		}
 		return new DataResponse(
-			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $secondaryFuelType, $initialOdometer, $odometerUnit, $notes),
+			$this->carService->create($this->getUserId(), $name, $brand, $model, $plate, $year, $fuelType, $secondaryFuelType, $initialOdometer, $odometerUnit, $notes, $purchasePrice, $purchaseDateValue),
 			Http::STATUS_CREATED,
 		);
 	}
@@ -87,8 +94,13 @@ class CarController extends Controller {
 		?string $notes = null,
 		bool $notesProvided = false,
 		?bool $archived = null,
+		?float $purchasePrice = null,
+		bool $purchasePriceProvided = false,
+		?string $purchaseDate = null,
+		bool $purchaseDateProvided = false,
 	): DataResponse {
 		try {
+			$purchaseDateValue = $purchaseDateProvided && $purchaseDate !== null ? new \DateTimeImmutable($purchaseDate) : null;
 			return new DataResponse($this->carService->update(
 				$id,
 				$this->getUserId(),
@@ -109,9 +121,15 @@ class CarController extends Controller {
 				$notes,
 				$notesProvided,
 				$archived,
+				$purchasePrice,
+				$purchasePriceProvided,
+				$purchaseDateValue,
+				$purchaseDateProvided,
 			));
 		} catch (DoesNotExistException) {
 			return new DataResponse([], Http::STATUS_NOT_FOUND);
+		} catch (\Exception) {
+			return new DataResponse(['message' => 'Invalid date'], Http::STATUS_BAD_REQUEST);
 		}
 	}
 

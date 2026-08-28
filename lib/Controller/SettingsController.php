@@ -34,12 +34,13 @@ class SettingsController extends Controller {
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
+			'notificationsEnabled' => $this->settingsService->getNotificationsEnabled($userId),
 		]);
 	}
 
 	#[NoAdminRequired]
 	#[FrontpageRoute(verb: 'PUT', url: '/api/settings')]
-	public function update(?int $reminderMonths = null, ?string $currencySymbol = null, ?string $consumptionFormat = null): DataResponse {
+	public function update(?int $reminderMonths = null, ?string $currencySymbol = null, ?string $consumptionFormat = null, ?bool $notificationsEnabled = null): DataResponse {
 		$userId = $this->getUserId();
 		if ($reminderMonths !== null) {
 			$this->settingsService->setReminderMonths($userId, $reminderMonths);
@@ -50,10 +51,14 @@ class SettingsController extends Controller {
 		if ($consumptionFormat !== null) {
 			$this->settingsService->setConsumptionFormat($userId, $consumptionFormat);
 		}
+		if ($notificationsEnabled !== null) {
+			$this->settingsService->setNotificationsEnabled($userId, $notificationsEnabled);
+		}
 		return new DataResponse([
 			'reminderMonths' => $this->settingsService->getReminderMonths($userId),
 			'currencySymbol' => $this->settingsService->getCurrencySymbol($userId),
 			'consumptionFormat' => $this->settingsService->getConsumptionFormat($userId),
+			'notificationsEnabled' => $this->settingsService->getNotificationsEnabled($userId),
 		]);
 	}
 }
