@@ -33,6 +33,11 @@ function openCar(event, car) {
 	router.push({ name: 'overview', params: { id: car.id } })
 }
 
+function openParts(event) {
+	event?.preventDefault?.()
+	router.push({ name: 'parts' })
+}
+
 function carDisplayName(car) {
 	return car.archived
 		? `${car.name} (${t('carfuelmaintance', 'archived')})`
@@ -47,7 +52,7 @@ function carDisplayName(car) {
 				<NcAppNavigationItem
 					:name="t('carfuelmaintance', 'Parts / equipment')"
 					:active="route.name === 'parts'"
-					@click="router.push({ name: 'parts' })">
+					@click="openParts">
 					<template #icon>
 						<Wrench :size="20" />
 					</template>
