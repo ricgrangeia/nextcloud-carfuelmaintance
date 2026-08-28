@@ -160,6 +160,24 @@
 					"stats": { "$ref": "#/components/schemas/CarStats" }
 				}
 			},
+			"PartItem": {
+				"type": "object",
+				"properties": {
+					"id": { "type": "integer" },
+					"userId": { "type": "string" },
+					"carId": { "type": "integer", "nullable": true, "description": "null means general stock, not tied to one car" },
+					"name": { "type": "string" },
+					"reference": { "type": "string", "nullable": true, "description": "Part number / reference code" },
+					"condition": { "type": "string", "enum": ["new", "used"], "default": "new" },
+					"category": { "type": "string", "nullable": true, "enum": ["engine", "brakes", "suspension", "electrical", "bodywork", "tires", "filters", "interior", "other"], "description": "Which part of the car this is for" },
+					"location": { "type": "string", "nullable": true, "description": "Where it's physically stored" },
+					"quantity": { "type": "integer", "default": 1, "minimum": 1 },
+					"cost": { "type": "number", "format": "float", "nullable": true },
+					"notes": { "type": "string", "nullable": true },
+					"hasImage": { "type": "boolean", "description": "Whether a photo was uploaded via POST /parts/{id}/image; fetch it from GET /parts/{id}/image" },
+					"createdAt": { "type": "string", "format": "date-time", "nullable": true }
+				}
+			},
 			"Settings": {
 				"type": "object",
 				"properties": {
@@ -291,6 +309,60 @@
 				"summary": "Delete a maintenance entry",
 				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
 				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/parts": {
+			"get": {
+				"operationId": "listParts",
+				"summary": "List your parts/equipment inventory",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "carId", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "Filter to parts linked to this car. Omit to list every part (including general stock)." }],
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PartItem" } } } } } }
+			},
+			"post": {
+				"operationId": "createPart",
+				"summary": "Add a part or piece of equipment to the inventory",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }],
+				"requestBody": {
+					"required": true,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "required": ["name"], "properties": { "name": { "type": "string" }, "carId": { "type": "integer", "description": "Omit for general stock not tied to a car" }, "reference": { "type": "string" }, "condition": { "type": "string", "enum": ["new", "used"], "default": "new" }, "category": { "type": "string" }, "location": { "type": "string" }, "quantity": { "type": "integer", "default": 1 }, "cost": { "type": "number" }, "notes": { "type": "string" } } } } }
+				},
+				"responses": { "201": { "description": "Created", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PartItem" } } } }, "404": { "description": "carId given but not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/parts/{id}": {
+			"put": {
+				"operationId": "updatePart",
+				"summary": "Update a part. Only fields present in the request body are changed; pass the matching \"...Provided=true\" flag to set a nullable field to null.",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": false,
+					"content": { "application/x-www-form-urlencoded": { "schema": { "type": "object", "properties": { "name": { "type": "string" }, "carId": { "type": "integer" }, "carIdProvided": { "type": "boolean" }, "reference": { "type": "string" }, "referenceProvided": { "type": "boolean" }, "condition": { "type": "string", "enum": ["new", "used"] }, "category": { "type": "string" }, "categoryProvided": { "type": "boolean" }, "location": { "type": "string" }, "locationProvided": { "type": "boolean" }, "quantity": { "type": "integer" }, "cost": { "type": "number" }, "costProvided": { "type": "boolean" }, "notes": { "type": "string" }, "notesProvided": { "type": "boolean" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PartItem" } } } }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"delete": {
+				"operationId": "deletePart",
+				"summary": "Delete a part (and its photo, if any)",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "OK" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			}
+		},
+		"/api/v1/parts/{id}/image": {
+			"post": {
+				"operationId": "uploadPartImage",
+				"summary": "Upload or replace a part's photo",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"requestBody": {
+					"required": true,
+					"content": { "multipart/form-data": { "schema": { "type": "object", "required": ["image"], "properties": { "image": { "type": "string", "format": "binary", "description": "jpeg, png, webp or gif, max 10MB" } } } } }
+				},
+				"responses": { "200": { "description": "OK", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PartItem" } } } }, "400": { "description": "Missing, unsupported, or too-large image" }, "404": { "description": "Not found or not owned by the authenticated user" } }
+			},
+			"get": {
+				"operationId": "partImage",
+				"summary": "Download a part's photo",
+				"parameters": [{ "$ref": "#/components/parameters/OcsApiRequest" }, { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+				"responses": { "200": { "description": "The image bytes, with the original Content-Type" }, "404": { "description": "Not found, not owned by the authenticated user, or no image set" } }
 			}
 		},
 		"/api/v1/settings": {

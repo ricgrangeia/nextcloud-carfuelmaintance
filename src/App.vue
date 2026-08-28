@@ -7,6 +7,7 @@ import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppNavigationNew from '@nextcloud/vue/components/NcAppNavigationNew'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import Cog from 'vue-material-design-icons/Cog.vue'
+import Wrench from 'vue-material-design-icons/Wrench.vue'
 import { t } from '@nextcloud/l10n'
 import { state, loadCars, toggleShowArchived } from './store/index.js'
 import api from './api/client.js'
@@ -44,6 +45,14 @@ function carDisplayName(car) {
 		<NcAppNavigation>
 			<template #list>
 				<NcAppNavigationItem
+					:name="t('carfuelmaintance', 'Parts / equipment')"
+					:active="route.name === 'parts'"
+					@click="router.push({ name: 'parts' })">
+					<template #icon>
+						<Wrench :size="20" />
+					</template>
+				</NcAppNavigationItem>
+				<NcAppNavigationItem
 					v-for="car in state.cars"
 					:key="car.id"
 					:name="carDisplayName(car)"
@@ -71,6 +80,9 @@ function carDisplayName(car) {
 
 						<h4>{{ t('carfuelmaintance', 'Overview') }}</h4>
 						<p>{{ t('carfuelmaintance', 'Shows total distance, fuel and maintenance spend, average consumption, and any upcoming or overdue reminders for the selected car.') }}</p>
+
+						<h4>{{ t('carfuelmaintance', 'Parts / equipment') }}</h4>
+						<p>{{ t('carfuelmaintance', 'A stock of spare parts and equipment, new or used, with a photo, storage location and reference number. Link a part to a specific car, or leave it unset for general stock shared across all your cars.') }}</p>
 					</HelpButton>
 					<button type="button" class="icon-btn" :aria-label="t('carfuelmaintance', 'Settings')" :title="t('carfuelmaintance', 'Settings')" @click="router.push({ name: 'settings' })">
 						<Cog :size="18" />

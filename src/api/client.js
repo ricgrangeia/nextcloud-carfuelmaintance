@@ -21,6 +21,17 @@ export default {
 	updateMaintenance: (id, payload) => data(axios.put(url(`/api/maintenance/${id}`), payload)),
 	deleteMaintenance: (id) => data(axios.delete(url(`/api/maintenance/${id}`))),
 
+	listParts: (carId = null) => data(axios.get(url('/api/parts'), { params: carId ? { carId } : {} })),
+	createPart: (payload) => data(axios.post(url('/api/parts'), payload)),
+	updatePart: (id, payload) => data(axios.put(url(`/api/parts/${id}`), payload)),
+	deletePart: (id) => data(axios.delete(url(`/api/parts/${id}`))),
+	uploadPartImage: (id, file) => {
+		const formData = new FormData()
+		formData.append('image', file)
+		return data(axios.post(url(`/api/parts/${id}/image`), formData))
+	},
+	partImageUrl: (id) => url(`/api/parts/${id}/image`),
+
 	getSettings: () => data(axios.get(url('/api/settings'))),
 	updateSettings: (payload) => data(axios.put(url('/api/settings'), payload)),
 }

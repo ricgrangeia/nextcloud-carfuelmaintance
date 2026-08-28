@@ -16,6 +16,7 @@ class CarService {
 		private CarMapper $carMapper,
 		private FuelEntryMapper $fuelEntryMapper,
 		private MaintenanceEntryMapper $maintenanceEntryMapper,
+		private PartService $partService,
 	) {
 	}
 
@@ -131,6 +132,7 @@ class CarService {
 		$car = $this->find($id, $userId);
 		$this->fuelEntryMapper->deleteAllForCar($id);
 		$this->maintenanceEntryMapper->deleteAllForCar($id);
+		$this->partService->deleteAllForCar($id, $userId);
 		$this->carMapper->delete($car);
 	}
 }

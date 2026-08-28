@@ -8,6 +8,7 @@ use OCA\CarFuelMaintance\Service\CarDetailService;
 use OCA\CarFuelMaintance\Service\CarService;
 use OCA\CarFuelMaintance\Service\FuelService;
 use OCA\CarFuelMaintance\Service\MaintenanceService;
+use OCA\CarFuelMaintance\Service\PartService;
 use OCA\CarFuelMaintance\Service\SettingsService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -15,6 +16,7 @@ use OCP\AppFramework\Http\Attribute\ApiRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\OCSController;
 use OCP\IRequest;
@@ -37,6 +39,7 @@ class ApiController extends OCSController {
 		private CarDetailService $carDetailService,
 		private FuelService $fuelService,
 		private MaintenanceService $maintenanceService,
+		private PartService $partService,
 		private SettingsService $settingsService,
 		private IUserSession $userSession,
 	) {
@@ -86,6 +89,12 @@ class ApiController extends OCSController {
 				['method' => 'POST', 'path' => '/api/v1/cars/{carId}/maintenance', 'summary' => 'Log maintenance work (entryDate, type, odometer, description, cost, workshop, nextDueDate, nextDueOdometer)'],
 				['method' => 'PUT', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Update a maintenance entry'],
 				['method' => 'DELETE', 'path' => '/api/v1/maintenance/{id}', 'summary' => 'Delete a maintenance entry'],
+				['method' => 'GET', 'path' => '/api/v1/parts', 'summary' => 'List your parts/equipment inventory (optionally ?carId= to filter to one car; parts with no car are general stock)'],
+				['method' => 'POST', 'path' => '/api/v1/parts', 'summary' => 'Add a part (name, carId, reference, condition "new"|"used", category, location, quantity, cost, notes)'],
+				['method' => 'PUT', 'path' => '/api/v1/parts/{id}', 'summary' => 'Update a part'],
+				['method' => 'DELETE', 'path' => '/api/v1/parts/{id}', 'summary' => 'Delete a part (and its photo, if any)'],
+				['method' => 'POST', 'path' => '/api/v1/parts/{id}/image', 'summary' => 'Upload/replace a part\'s photo (multipart/form-data, field name "image"; jpeg/png/webp/gif, max 10MB)'],
+				['method' => 'GET', 'path' => '/api/v1/parts/{id}/image', 'summary' => 'Download a part\'s photo'],
 				['method' => 'GET', 'path' => '/api/v1/settings', 'summary' => 'Get user preferences (reminderMonths: how many months ahead of a due date/mileage counts as "due soon"; currencySymbol: shown after every money value app-wide; consumptionFormat: "per100" e.g. L/100km or "perUnit" e.g. km/L, MPG)'],
 				['method' => 'PUT', 'path' => '/api/v1/settings', 'summary' => 'Update user preferences (reminderMonths, currencySymbol, consumptionFormat) — only fields present in the request are changed'],
 			],
@@ -390,6 +399,121 @@ class ApiController extends OCSController {
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
 			return $this->notFound();
+		}
+	}
+
+	// --- Parts / equipment inventory ---------------------------------------
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'GET', url: '/api/v1/parts')]
+	public function listParts(?int $carId = null): DataResponse {
+		return new DataResponse($this->partService->findAll($this->getUserId(), $carId));
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'POST', url: '/api/v1/parts')]
+	public function createPart(
+		string $name,
+		?int $carId = null,
+		?string $reference = null,
+		string $condition = 'new',
+		?string $category = null,
+		?string $location = null,
+		int $quantity = 1,
+		?float $cost = null,
+		?string $notes = null,
+	): DataResponse {
+		try {
+			return new DataResponse(
+				$this->partService->create($this->getUserId(), $name, $carId, $reference, $condition, $category, $location, $quantity, $cost, $notes),
+				Http::STATUS_CREATED,
+			);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'PUT', url: '/api/v1/parts/{id}', requirements: ['id' => '\d+'])]
+	public function updatePart(
+		int $id,
+		?string $name = null,
+		?int $carId = null,
+		bool $carIdProvided = false,
+		?string $reference = null,
+		bool $referenceProvided = false,
+		?string $condition = null,
+		?string $category = null,
+		bool $categoryProvided = false,
+		?string $location = null,
+		bool $locationProvided = false,
+		?int $quantity = null,
+		?float $cost = null,
+		bool $costProvided = false,
+		?string $notes = null,
+		bool $notesProvided = false,
+	): DataResponse {
+		try {
+			return new DataResponse($this->partService->update(
+				$id,
+				$this->getUserId(),
+				$name,
+				$carId,
+				$carIdProvided,
+				$reference,
+				$referenceProvided,
+				$condition,
+				$category,
+				$categoryProvided,
+				$location,
+				$locationProvided,
+				$quantity,
+				$cost,
+				$costProvided,
+				$notes,
+				$notesProvided,
+			));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'DELETE', url: '/api/v1/parts/{id}', requirements: ['id' => '\d+'])]
+	public function deletePart(int $id): DataResponse {
+		try {
+			$this->partService->delete($id, $this->getUserId());
+			return new DataResponse([]);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'POST', url: '/api/v1/parts/{id}/image', requirements: ['id' => '\d+'])]
+	public function uploadPartImage(int $id): DataResponse {
+		$uploaded = $this->request->getUploadedFile('image');
+		if ($uploaded === null || !is_string($uploaded['tmp_name'] ?? null) || !is_uploaded_file($uploaded['tmp_name'])) {
+			return new DataResponse(['message' => 'No image uploaded'], Http::STATUS_BAD_REQUEST);
+		}
+
+		try {
+			return new DataResponse($this->partService->setImage($id, $this->getUserId(), $uploaded['tmp_name'], (string) ($uploaded['type'] ?? '')));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	#[NoAdminRequired]
+	#[ApiRoute(verb: 'GET', url: '/api/v1/parts/{id}/image', requirements: ['id' => '\d+'])]
+	public function partImage(int $id): Http\Response {
+		try {
+			$file = $this->partService->getImage($id, $this->getUserId());
+			return new DataDisplayResponse($file->getContent(), Http::STATUS_OK, ['Content-Type' => $file->getMimeType()]);
+		} catch (DoesNotExistException) {
+			return new Http\Response(Http::STATUS_NOT_FOUND);
 		}
 	}
 
