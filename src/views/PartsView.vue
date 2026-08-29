@@ -10,6 +10,8 @@ import { PART_CATEGORIES, partCategoryLabel } from '../utils/partCategories.js'
 import { formatMoney } from '../utils/currency.js'
 
 const CONDITIONS = ['new', 'used']
+const MAX_IMAGE_DIMENSION = 1600
+const IMAGE_QUALITY = 0.82
 
 const parts = ref([])
 const currencySymbol = ref('€')
@@ -97,13 +99,47 @@ function onDialogOpenChange(isOpen) {
 	}
 }
 
-function onImageChange(event) {
+function jpegName(name) {
+	const dot = name.lastIndexOf('.')
+	return (dot === -1 ? name : name.slice(0, dot)) + '.jpg'
+}
+
+function resizeImage(file) {
+	return new Promise((resolve) => {
+		const img = new Image()
+		const objectUrl = URL.createObjectURL(file)
+		img.onload = () => {
+			URL.revokeObjectURL(objectUrl)
+			const { width, height } = img
+			if (width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION) {
+				resolve(file)
+				return
+			}
+			const scale = MAX_IMAGE_DIMENSION / Math.max(width, height)
+			const canvas = document.createElement('canvas')
+			canvas.width = Math.round(width * scale)
+			canvas.height = Math.round(height * scale)
+			canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+			canvas.toBlob((blob) => {
+				resolve(blob ? new File([blob], jpegName(file.name), { type: 'image/jpeg' }) : file)
+			}, 'image/jpeg', IMAGE_QUALITY)
+		}
+		img.onerror = () => {
+			URL.revokeObjectURL(objectUrl)
+			resolve(file)
+		}
+		img.src = objectUrl
+	})
+}
+
+async function onImageChange(event) {
 	const file = event.target.files[0]
 	if (!file) {
 		return
 	}
-	imageFile.value = file
-	imagePreview.value = URL.createObjectURL(file)
+	const resized = await resizeImage(file)
+	imageFile.value = resized
+	imagePreview.value = URL.createObjectURL(resized)
 }
 
 async function submitForm() {

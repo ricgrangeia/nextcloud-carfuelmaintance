@@ -11,7 +11,7 @@ due-mileage reminders, backed by real Nextcloud notifications. Track total cost 
 ownership and per-trip costs (including tolls), and manage a photographed parts
 stock linked to your cars. Includes a token-friendly API so a script or an AI
 assistant can log entries for you.]]></description>
-	<version>2.0.1</version>
+	<version>2.0.2</version>
 	<licence>AGPL-3.0-or-later</licence>
 	<author mail="ricardo@grangeia.pt">Ricardo</author>
 	<namespace>CarFuelMaintance</namespace>
