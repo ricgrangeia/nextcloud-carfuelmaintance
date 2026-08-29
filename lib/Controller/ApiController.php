@@ -531,6 +531,7 @@ class ApiController extends OCSController {
 	}
 
 	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	#[ApiRoute(verb: 'GET', url: '/api/v1/parts/{id}/image', requirements: ['id' => '\d+'])]
 	public function partImage(int $id): Http\Response {
 		try {
