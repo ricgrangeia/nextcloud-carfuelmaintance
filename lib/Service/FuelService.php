@@ -36,7 +36,9 @@ class FuelService {
 		if ($totalCost === null && $pricePerUnit !== null) {
 			$totalCost = round($pricePerUnit * $quantity, 2);
 		} elseif ($pricePerUnit === null && $totalCost !== null && $quantity > 0) {
-			$pricePerUnit = round($totalCost / $quantity, 4);
+			// 3 casas, como o resto dos valores decimais da app (quantity,
+			// costPerDistance, etc.) -- estava a 4, unico sitio fora do padrao.
+			$pricePerUnit = round($totalCost / $quantity, 3);
 		}
 		return [$pricePerUnit, $totalCost];
 	}

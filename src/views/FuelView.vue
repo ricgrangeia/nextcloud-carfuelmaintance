@@ -44,7 +44,8 @@ watch(
 		if (q !== null && p !== null && c === null) {
 			form.value.totalCost = Math.round(q * p * 100) / 100
 		} else if (q !== null && c !== null && p === null && q > 0) {
-			form.value.pricePerUnit = Math.round((c / q) * 10000) / 10000
+			// 3 casas, como o resto (quantity abaixo, etc.) -- estava a 4.
+			form.value.pricePerUnit = Math.round((c / q) * 1000) / 1000
 		} else if (p !== null && c !== null && q === null && p > 0) {
 			form.value.quantity = Math.round((c / p) * 1000) / 1000
 		}
