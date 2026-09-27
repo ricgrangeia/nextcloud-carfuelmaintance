@@ -21,6 +21,47 @@ function typeLabel(type) {
 	return maintenanceTypeLabel(t, type)
 }
 
+// Ordenação das colunas -- por omissão por data, mais recente no topo.
+const sortKey = ref('entryDate')
+const sortDir = ref('desc')
+
+const SORT_ACCESSORS = {
+	entryDate: (e) => e.entryDate,
+	type: (e) => typeLabel(e.type),
+	odometer: (e) => e.odometer,
+	description: (e) => e.description,
+	cost: (e) => e.cost,
+	workshop: (e) => e.workshop,
+	nextDueDate: (e) => e.nextDueDate,
+}
+
+function toggleSort(key) {
+	if (sortKey.value === key) {
+		sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+	} else {
+		sortKey.value = key
+		// Datas e custo fazem mais sentido a começar do maior/mais recente;
+		// texto (tipo, descrição, oficina) faz mais sentido A-Z primeiro.
+		sortDir.value = (key === 'entryDate' || key === 'nextDueDate' || key === 'odometer' || key === 'cost') ? 'desc' : 'asc'
+	}
+}
+
+const sortedEntries = computed(() => {
+	const accessor = SORT_ACCESSORS[sortKey.value]
+	const dir = sortDir.value === 'asc' ? 1 : -1
+	return [...detail.maintenanceEntries].sort((a, b) => {
+		const va = accessor(a)
+		const vb = accessor(b)
+		// Valores em falta ficam sempre no fim, seja qual for a direção --
+		// senão "sem custo definido" salta para o topo ao ordenar por custo
+		// descendente, o que confunde mais do que ajuda.
+		if (va === null || va === undefined || va === '') return vb === null || vb === undefined || vb === '' ? 0 : 1
+		if (vb === null || vb === undefined || vb === '') return -1
+		if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+		return String(va).localeCompare(String(vb)) * dir
+	})
+})
+
 function errorMessage(e) {
 	return e?.response?.data?.message || e?.message || String(e)
 }
@@ -133,18 +174,25 @@ const dialogButtons = computed(() => [
 		<table v-if="detail.maintenanceEntries.length" class="entries-table">
 			<thead>
 				<tr>
-					<th>{{ t('carfuelmaintance', 'Date') }}</th>
-					<th>{{ t('carfuelmaintance', 'Type') }}</th>
-					<th>{{ t('carfuelmaintance', 'Odometer') }}</th>
-					<th>{{ t('carfuelmaintance', 'Description') }}</th>
-					<th>{{ t('carfuelmaintance', 'Cost') }}</th>
-					<th>{{ t('carfuelmaintance', 'Workshop') }}</th>
-					<th>{{ t('carfuelmaintance', 'Next due') }}</th>
+					<th v-for="col in [
+						['entryDate', 'Date'],
+						['type', 'Type'],
+						['odometer', 'Odometer'],
+						['description', 'Description'],
+						['cost', 'Cost'],
+						['workshop', 'Workshop'],
+						['nextDueDate', 'Next due'],
+					]" :key="col[0]">
+						<button type="button" class="sort-btn" @click="toggleSort(col[0])">
+							{{ t('carfuelmaintance', col[1]) }}
+							<span v-if="sortKey === col[0]" class="sort-arrow">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+						</button>
+					</th>
 					<th></th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="entry in detail.maintenanceEntries" :key="entry.id">
+				<tr v-for="entry in sortedEntries" :key="entry.id">
 					<td>{{ entry.entryDate }}</td>
 					<td>{{ typeLabel(entry.type) }}</td>
 					<td>{{ entry.odometer !== null ? `${entry.odometer} ${detail.stats.odometerUnit}` : '—' }}</td>
@@ -257,6 +305,31 @@ const dialogButtons = computed(() => [
 .entries-table th {
 	background-color: var(--color-primary-element);
 	color: var(--color-primary-element-text);
+	padding: 0;
+}
+
+.sort-btn {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	width: 100%;
+	height: 100%;
+	background: none;
+	border: none;
+	color: inherit;
+	font: inherit;
+	font-weight: inherit;
+	text-align: left;
+	cursor: pointer;
+	padding: 6px 8px;
+}
+
+.sort-btn:hover {
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sort-arrow {
+	font-size: 10px;
 }
 
 .empty {
