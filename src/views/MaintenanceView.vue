@@ -47,9 +47,13 @@ function toggleSort(key) {
 }
 
 const sortedEntries = computed(() => {
+	// detail é um ref que começa a null (ver CarView.vue). No template o Vue
+	// desembrulha refs sozinho, aqui no script NÃO -- sem o .value isto lia
+	// undefined e o spread rebentava, deixando a página em branco.
+	const entries = detail.value?.maintenanceEntries ?? []
 	const accessor = SORT_ACCESSORS[sortKey.value]
 	const dir = sortDir.value === 'asc' ? 1 : -1
-	return [...detail.maintenanceEntries].sort((a, b) => {
+	return [...entries].sort((a, b) => {
 		const va = accessor(a)
 		const vb = accessor(b)
 		// Valores em falta ficam sempre no fim, seja qual for a direção --
